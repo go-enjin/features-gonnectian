@@ -399,6 +399,7 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	if f.baseRoute == "" {
 		f.baseRoute = "/"
 	}
+	f.baseRoute = "/" + bePath.TrimSlashes(f.baseRoute)
 
 	if ctx.IsSet("ac-name") {
 		if v := ctx.String("ac-name"); v != "" {
@@ -437,6 +438,7 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	} else {
 		log.DebugF("--ac-base-url not set?")
 	}
+	f.profile.BaseUrl = net.TrimTrailingSlash(f.profile.BaseUrl)
 	f.descriptor.BaseURL = f.profile.BaseUrl
 	if f.descriptor.BaseURL == "" {
 		err = fmt.Errorf("missing --ac-base-url")
@@ -598,6 +600,9 @@ func (f *Feature) Use(s feature.System) feature.MiddlewareFn {
 }
 
 func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (out context.Context) {
+	if f.baseRoute != "" {
+		ctx.Set("BaseRoute", f.baseRoute)
+	}
 	if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok {
 		ctx.Set("HostBaseUrl", hostBaseUrl)
 	}
@@ -656,9 +661,6 @@ func (f *Feature) makeProcessorFromPageFile(path string, filePath string) featur
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
 		var err error
 		var p *page.Page
-		// if f.baseRoute != "" {
-		// 	path = bePath.SafeConcatUrlPath(f.baseRoute, path)
-		// }
 		if p, err = page.NewFromFile(path, filePath); err == nil {
 			if err = s.ServePage(p, w, r); err != nil {
 				log.ErrorF("error serving page %v: %v", r.URL.Path, err)
