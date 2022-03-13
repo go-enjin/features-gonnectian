@@ -492,7 +492,7 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	}
 
 	var prefix, prefixLabel string
-	if prefix = ctx.String("prefix"); prefix != "" {
+	if prefix = ctx.String("prefix"); prefix != "" && prefix != "prd" {
 		prefixLabel = "[" + strings.ToUpper(prefix) + "] "
 		f.descriptor.Name = prefixLabel + f.descriptor.Name
 	}
