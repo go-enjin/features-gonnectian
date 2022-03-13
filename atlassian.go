@@ -542,9 +542,9 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 		}
 		log.DebugF("%v known atlassian ip ranges (--ac-validate-ip=true)", len(f.ipRanges))
 	}
-	pluginUrl := f.descriptor.BaseURL
+	pluginUrl := net.TrimTrailingSlash(f.descriptor.BaseURL)
 	if f.baseRoute != "" {
-		pluginUrl += "/" + f.baseRoute
+		pluginUrl += f.baseRoute
 	}
 	pluginUrl += "/atlassian-connect.json"
 	log.InfoF("Atlassian plugin URL: %v", pluginUrl)
