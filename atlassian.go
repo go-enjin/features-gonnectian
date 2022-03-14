@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
 	databaseFeature "github.com/go-enjin/be/features/database"
@@ -41,8 +42,6 @@ import (
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect/store"
 )
 
-var _feature *Feature
-
 var _ feature.Feature = (*Feature)(nil)
 
 var _ feature.Middleware = (*Feature)(nil)
@@ -54,6 +53,9 @@ const Tag feature.Tag = "atlassian"
 type Feature struct {
 	feature.CMiddleware
 
+	makeName       string
+	makeTag        string
+	makeEnv        string
 	baseRoute      string
 	profile        *gonnect.Profile
 	descriptor     *Descriptor
@@ -101,12 +103,18 @@ type MakeFeature interface {
 	AddRouteProcessor(route string, processor feature.ReqProcessFn) MakeFeature
 }
 
-func New() MakeFeature {
-	if _feature == nil {
-		_feature = new(Feature)
-		_feature.Init(_feature)
+func New(name, tag, env string) MakeFeature {
+	if name == "" || tag == "" || env == "" {
+		log.FatalF("atlassian feature requires non-empty name, tag and env arguments")
+		return nil
 	}
-	return _feature
+	f := new(Feature)
+	f.makeName = name
+	f.makeTag = tag
+	f.makeEnv = env
+	log.DebugF("new atlassian feature: %v %v", f.makeTag, f.makeEnv)
+	f.Init(f)
+	return f
 }
 
 func (f *Feature) EnableIpValidation(enabled bool) MakeFeature {
@@ -131,7 +139,7 @@ func (f *Feature) ProfileSignedInstall(signedInstall bool) MakeFeature {
 
 func (f *Feature) ConnectFromJSON(encoded []byte) MakeFeature {
 	if v, err := NewDescriptorFromJSON(encoded); err != nil {
-		log.FatalF("error decoding json descriptor: %v", err)
+		log.FatalF("error decoding %v atlassian json descriptor: %v", f.makeName, err)
 	} else {
 		f.descriptor = v
 	}
@@ -322,7 +330,7 @@ func (f *Feature) Init(this interface{}) {
 }
 
 func (f *Feature) Tag() (tag feature.Tag) {
-	tag = Tag
+	tag = feature.Tag(strcase.ToKebab(string(Tag) + "-" + f.makeTag))
 	return
 }
 
@@ -336,63 +344,63 @@ func (f *Feature) Depends() (deps feature.Tags) {
 func (f *Feature) Build(b feature.Buildable) (err error) {
 	b.AddFlags(
 		&cli.StringFlag{
-			Name:    "ac-name",
+			Name:    f.makeTag + "-ac-name",
 			Usage:   "specify the Atlassian Connect plugin name",
-			EnvVars: []string{globals.EnvPrefix + "_AC_NAME"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_NAME_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-description",
+			Name:    f.makeTag + "-ac-description",
 			Usage:   "specify the Atlassian Connect plugin description",
-			EnvVars: []string{globals.EnvPrefix + "_AC_DESCRIPTION"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_DESCRIPTION_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-key",
+			Name:    f.makeTag + "-ac-key",
 			Usage:   "specify the Atlassian Connect plugin key",
-			EnvVars: []string{globals.EnvPrefix + "_AC_KEY"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_KEY_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-version",
+			Name:    f.makeTag + "-ac-version",
 			Usage:   "specify the Atlassian Connect plugin version",
-			EnvVars: []string{globals.EnvPrefix + "_AC_VERSION"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_VERSION_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-base-url",
+			Name:    f.makeTag + "-ac-base-url",
 			Usage:   "specify the Atlassian Connect plugin base URL",
-			EnvVars: []string{globals.EnvPrefix + "_AC_BASE_URL"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_BASE_URL_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-base-route",
+			Name:    f.makeTag + "-ac-base-route",
 			Usage:   "specify the Atlassian Connect plugin base route",
-			EnvVars: []string{globals.EnvPrefix + "_AC_BASE_ROUTE"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_BASE_ROUTE_" + f.makeEnv},
 		},
 		&cli.StringSliceFlag{
-			Name:    "ac-scope",
+			Name:    f.makeTag + "-ac-scope",
 			Usage:   "specify the Atlassian Connect plugin scopes",
 			Value:   cli.NewStringSlice("READ"),
-			EnvVars: []string{globals.EnvPrefix + "_AC_SCOPES"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_SCOPES_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-vendor-name",
+			Name:    f.makeTag + "-ac-vendor-name",
 			Usage:   "specify the Atlassian Connect plugin vendor name",
-			EnvVars: []string{globals.EnvPrefix + "_AC_VENDOR_NAME"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_VENDOR_NAME_" + f.makeEnv},
 		},
 		&cli.StringFlag{
-			Name:    "ac-vendor-url",
+			Name:    f.makeTag + "-ac-vendor-url",
 			Usage:   "specify the Atlassian Connect plugin vendor URL",
-			EnvVars: []string{globals.EnvPrefix + "_AC_VENDOR_URL"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_VENDOR_URL_" + f.makeEnv},
 		},
 		&cli.BoolFlag{
-			Name:    "ac-validate-ip",
+			Name:    f.makeTag + "-ac-validate-ip",
 			Usage:   "restrict authenticated connections to valid Atlassian IP ranges",
-			EnvVars: []string{globals.EnvPrefix + "_AC_VALIDATE_IP"},
+			EnvVars: []string{globals.EnvPrefix + "_AC_VALIDATE_IP_" + f.makeEnv},
 		},
 	)
 	return
 }
 
 func (f *Feature) Startup(ctx *cli.Context) (err error) {
-	if ctx.IsSet("ac-base-route") {
-		if v := ctx.String("ac-base-route"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-base-route") {
+		if v := ctx.String(f.makeTag + "-ac-base-route"); v != "" {
 			f.baseRoute = v
 		}
 	}
@@ -401,87 +409,86 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	}
 	f.baseRoute = "/" + bePath.TrimSlashes(f.baseRoute)
 
-	if ctx.IsSet("ac-name") {
-		if v := ctx.String("ac-name"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-name") {
+		if v := ctx.String(f.makeTag + "-ac-name"); v != "" {
 			f.descriptor.Name = v
 		}
 	}
 	if f.descriptor.Name == "" {
-		err = fmt.Errorf("missing --ac-name")
+		err = fmt.Errorf("missing --%v-ac-name", f.makeTag)
 		return
 	}
 
-	if ctx.IsSet("ac-key") {
-		if v := ctx.String("ac-key"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-key") {
+		if v := ctx.String(f.makeTag + "-ac-key"); v != "" {
 			f.descriptor.Key = v
 		}
 	}
 	if f.descriptor.Key == "" {
-		err = fmt.Errorf("missing --ac-key")
+		err = fmt.Errorf("missing --%v-ac-key", f.makeTag)
 		return
 	}
 
-	f.descriptor.Description = ctx.String("ac-description")
+	f.descriptor.Description = ctx.String(f.makeTag + "-ac-description")
 	if f.descriptor.Description == "" {
-		err = fmt.Errorf("missing --ac-description: %v", ctx.String("ac-description"))
+		err = fmt.Errorf("missing --%v-ac-description: %v", f.makeTag, ctx.String(f.makeTag+"-ac-description"))
 		return
 	}
 
-	log.DebugF("argv: %v", ctx.Args().Slice())
-	if ctx.IsSet("ac-base-url") {
-		if v := ctx.String("ac-base-url"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-base-url") {
+		if v := ctx.String(f.makeTag + "-ac-base-url"); v != "" {
 			f.profile.BaseUrl = v
-			log.DebugF("--ac-base-url present: %v", v)
+			log.DebugF("--%v-ac-base-url present: %v", f.makeTag, v)
 		} else {
-			log.DebugF("--ac-base-url set, empty")
+			log.DebugF("--%v-ac-base-url set, empty", f.makeTag)
 		}
 	} else {
-		log.DebugF("--ac-base-url not set?")
+		log.DebugF("--%v-ac-base-url not set", f.makeTag)
 	}
 	f.profile.BaseUrl = net.TrimTrailingSlash(f.profile.BaseUrl)
 	f.descriptor.BaseURL = f.profile.BaseUrl
 	if f.descriptor.BaseURL == "" {
-		err = fmt.Errorf("missing --ac-base-url")
+		err = fmt.Errorf("missing --%v-ac-base-url", f.makeTag)
 		return
 	}
 
-	if ctx.IsSet("ac-vendor-name") {
-		if v := ctx.String("ac-vendor-name"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-vendor-name") {
+		if v := ctx.String(f.makeTag + "-ac-vendor-name"); v != "" {
 			f.descriptor.Vendor.Name = v
 		}
 	}
 	if f.descriptor.Vendor.Name == "" {
-		err = fmt.Errorf("missing --ac-vendor-name")
+		err = fmt.Errorf("missing --%v-ac-vendor-name", f.makeTag)
 		return
 	}
 
-	if ctx.IsSet("ac-vendor-url") {
-		if v := ctx.String("ac-vendor-url"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-vendor-url") {
+		if v := ctx.String(f.makeTag + "-ac-vendor-url"); v != "" {
 			f.descriptor.Vendor.URL = v
 		}
 	}
 	if f.descriptor.Vendor.URL == "" {
-		err = fmt.Errorf("missing --ac-vendor-url")
+		err = fmt.Errorf("missing --%v-ac-vendor-url", f.makeTag)
 		return
 	}
 
-	if ctx.IsSet("ac-version") {
-		if v := ctx.String("ac-version"); v != "" {
+	if ctx.IsSet(f.makeTag + "-ac-version") {
+		if v := ctx.String(f.makeTag + "-ac-version"); v != "" {
 			f.descriptor.Version = v
 		}
 	}
 	if f.descriptor.Version == "" {
-		err = fmt.Errorf("missing --ac-version")
+		err = fmt.Errorf("missing --%v-ac-version", f.makeTag)
 		return
 	}
 
-	if ctx.IsSet("ac-validate-ip") {
-		f.validateIp = ctx.Bool("ac-validate-ip")
+	if ctx.IsSet(f.makeTag + "-ac-validate-ip") {
+		f.validateIp = ctx.Bool(f.makeTag + "-ac-validate-ip")
 	}
 
-	if ctx.IsSet("ac-scope") {
+	if ctx.IsSet(f.makeTag + "-ac-scope") {
 		var scopes []string
-		for _, v := range ctx.StringSlice("ac-scope") {
+		for _, v := range ctx.StringSlice(f.makeTag + "-ac-scope") {
 			scope := strings.ToUpper(v)
 			if !beStrings.StringInStrings(scope, scopes...) {
 				scopes = append(scopes, scope)
@@ -534,29 +541,29 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 		return
 	}
 
-	f.addon, err = gonnect.NewCustomAddon(f.profile, "feature", dm, s)
+	f.addon, err = gonnect.NewCustomAddon(f.profile, fmt.Sprintf("%v-feature", f.makeTag), dm, s)
 
 	if f.validateIp {
 		if f.ipRanges, err = atlassian.GetIpRanges(); err != nil {
-			log.FatalF("error getting atlassian ip ranges: %v", err)
+			log.FatalF("error getting %v atlassian ip ranges: %v", f.makeName, err)
 		}
-		log.DebugF("%v known atlassian ip ranges (--ac-validate-ip=true)", len(f.ipRanges))
+		log.DebugF("%v known %v atlassian ip ranges (--ac-validate-ip=true)", f.makeName, len(f.ipRanges))
 	}
 	pluginUrl := net.TrimTrailingSlash(f.descriptor.BaseURL)
 	if f.baseRoute != "" {
 		pluginUrl += f.baseRoute
 	}
 	pluginUrl += "/atlassian-connect.json"
-	log.InfoF("Atlassian plugin URL: %v", pluginUrl)
+	log.InfoF("Atlassian Plugin URL [%v]: %v", f.makeName, pluginUrl)
 
 	return
 }
 
 func (f *Feature) Apply(s feature.System) (err error) {
-	log.DebugF("applying atlassian routes")
+	log.DebugF("applying %v atlassian routes", f.makeName)
 	routes.RegisterRoutes(f.baseRoute, f.addon, s.Router())
 	for route, handler := range f.handlers {
-		log.DebugF("including atlassian custom route handler: %v", route)
+		log.DebugF("including %v atlassian custom route handler: %v", f.makeName, route)
 		s.Router().Handle(route, middleware.NewAuthenticationMiddleware(f.addon, false)(handler))
 	}
 	return
@@ -566,7 +573,7 @@ func (f *Feature) ModifyHeaders(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var hostBaseUrl string
 	if hostBaseUrl, ok = r.Context().Value("hostBaseUrl").(string); !ok {
-		log.ErrorF("missing hostBaseUrl")
+		log.ErrorF("%v missing hostBaseUrl", f.makeName)
 		return
 	}
 	csp := fmt.Sprintf(
@@ -581,7 +588,7 @@ func (f *Feature) ModifyHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *Feature) Use(s feature.System) feature.MiddlewareFn {
-	log.DebugF("including atlassian middleware")
+	log.DebugF("including %v atlassian middleware", f.makeName)
 
 	mw := middleware.NewRequestMiddleware(f.addon, make(map[string]string))
 	return func(next http.Handler) http.Handler {
@@ -601,30 +608,30 @@ func (f *Feature) Use(s feature.System) feature.MiddlewareFn {
 
 func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (out context.Context) {
 	if f.baseRoute != "" {
-		ctx.Set("BaseRoute", f.baseRoute)
+		ctx.SetSpecific("BaseRoute_"+f.makeEnv, f.baseRoute)
 	}
 	if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok {
-		ctx.Set("HostBaseUrl", hostBaseUrl)
+		ctx.SetSpecific("HostBaseUrl_"+f.makeEnv, hostBaseUrl)
 	}
 	if hostStyleUrl, ok := r.Context().Value("hostStylesheetUrl").(string); ok {
-		ctx.Set("HostStylesheetUrl", hostStyleUrl)
+		ctx.SetSpecific("HostStylesheetUrl_"+f.makeEnv, hostStyleUrl)
 	}
 	if hostScriptUrl, ok := r.Context().Value("hostScriptUrl").(string); ok {
-		ctx.Set("HostScriptUrl", hostScriptUrl)
+		ctx.SetSpecific("HostScriptUrl_"+f.makeEnv, hostScriptUrl)
 	}
 	if len(f.dashboardItems) > 0 {
 		q := r.URL.Query()
 		if v := q.Get("dashboardId"); v != "" {
-			ctx.Set("DashboardId", v)
+			ctx.SetSpecific("DashboardId_"+f.makeEnv, v)
 		}
 		if v := q.Get("dashboardItemId"); v != "" {
-			ctx.Set("DashboardItemId", v)
+			ctx.SetSpecific("DashboardItemId_"+f.makeEnv, v)
 		}
 		if v := q.Get("dashboardItemKey"); v != "" {
-			ctx.Set("DashboardItemKey", v)
+			ctx.SetSpecific("DashboardItemKey_"+f.makeEnv, v)
 		}
 		if v := q.Get("dashboardItemViewType"); v != "" {
-			ctx.Set("DashboardItemViewType", v)
+			ctx.SetSpecific("DashboardItemViewType_"+f.makeEnv, v)
 		}
 	}
 	return ctx
@@ -634,12 +641,12 @@ func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseW
 	for route, processor := range f.processors {
 		if path := bePath.SafeConcatUrlPath(f.baseRoute, net.TrimQueryParams(route)); path == r.URL.Path {
 			if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok && hostBaseUrl != "" {
-				log.DebugF("running atlassian %v route processor for app host: %v", path, hostBaseUrl)
+				log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
 				if processor(s, w, r) {
 					return
 				}
 			} else {
-				log.WarnF("unauthenticated request for valid atlassian route: %v", path)
+				log.WarnF("unauthenticated request for valid %v atlassian route: %v", f.makeName, path)
 			}
 		}
 	}
@@ -651,7 +658,7 @@ func (f *Feature) ipRejected(s feature.Service, w http.ResponseWriter, r *http.R
 	if f.validateIp && !utils.CheckRequestIpWithList(r, f.ipRanges) {
 		s.Serve403(w, r)
 		address, _ := utils.GetIpFromRequest(r)
-		log.WarnF("atlassian request denied - not from a known atlassian ip range: %v", address)
+		log.WarnF("%v atlassian request denied - not from a known atlassian ip range: %v", f.makeName, address)
 		return true
 	}
 	return false
@@ -663,10 +670,10 @@ func (f *Feature) makeProcessorFromPageFile(path string, filePath string) featur
 		var p *page.Page
 		if p, err = page.NewFromFile(path, filePath); err == nil {
 			if err = s.ServePage(p, w, r); err != nil {
-				log.ErrorF("error serving page %v: %v", r.URL.Path, err)
+				log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
 			}
 		} else {
-			log.ErrorF("error making page from path: %v", err)
+			log.ErrorF("error making %v atlassian page from path: %v", f.makeName, err)
 		}
 		return err == nil
 	}
@@ -676,11 +683,11 @@ func (f *Feature) makeProcessorFromPageString(path string, raw string) feature.R
 	var p *page.Page
 	var err error
 	if p, err = page.NewFromString(path, raw); err != nil {
-		log.FatalF("error making page from path: %v", err)
+		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
 	}
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
 		if err = s.ServePage(p, w, r); err != nil {
-			log.ErrorF("error serving page %v: %v", r.URL.Path, err)
+			log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
 		}
 		return err == nil
 	}
