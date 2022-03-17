@@ -35,7 +35,6 @@ import (
 	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
-	"github.com/go-enjin/be/pkg/utils"
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect"
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect/middleware"
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect/routes"
@@ -655,9 +654,9 @@ func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseW
 }
 
 func (f *Feature) ipRejected(s feature.Service, w http.ResponseWriter, r *http.Request) bool {
-	if f.validateIp && !utils.CheckRequestIpWithList(r, f.ipRanges) {
+	if f.validateIp && !net.CheckRequestIpWithList(r, f.ipRanges) {
 		s.Serve403(w, r)
-		address, _ := utils.GetIpFromRequest(r)
+		address, _ := net.GetIpFromRequest(r)
 		log.WarnF("%v atlassian request denied - not from a known atlassian ip range: %v", f.makeName, address)
 		return true
 	}
