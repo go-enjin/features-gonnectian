@@ -247,21 +247,26 @@ func (f *Feature) AddDashboardItemFromFile(key, name, thumbnailUrl, description,
 }
 
 func (f *Feature) AddDashboardItemFromFileWithConfig(key, name, thumbnailUrl, description, path, filePath, configPath, configFile string) MakeFeature {
-	configurable := configPath != ""
+	configurable := configPath != "" && configFile != ""
+	params := "dashboardId={dashboard.id}"
+	params += "&dashboardItemId={dashboardItem.id}"
+	params += "&dashboardItemKey={dashboardItem.key}"
+	params += "&dashboardItemViewType={dashboardItem.viewType}"
 	if strings.Contains(path, "?") {
-		path += "&"
+		path += "&" + params
 	} else {
-		path += "?"
+		path += "?" + params
 	}
-	path += "dashboardId={dashboard.id}"
-	path += "&dashboardItemId={dashboardItem.id}"
-	path += "&dashboardItemKey={dashboardItem.key}"
-	path += "&dashboardItemViewType={dashboardItem.viewType}"
 	f.dashboardItems = append(
 		f.dashboardItems,
 		NewDashboardItem(key, path, name, thumbnailUrl, description, configurable),
 	)
 	if configurable {
+		if strings.Contains(configPath, "?") {
+			configPath += "&" + params
+		} else {
+			configPath += "?" + params
+		}
 		f.AddRouteProcessor(configPath, f.makeProcessorFromPageFile(configPath, configFile))
 	}
 	return f.AddRouteProcessor(path, f.makeProcessorFromPageFile(path, filePath))
@@ -272,16 +277,26 @@ func (f *Feature) AddDashboardItemProcessor(key, path, name, thumbnailUrl, descr
 }
 
 func (f *Feature) AddDashboardItemProcessorWithConfig(key, path, name, thumbnailUrl, description, configPath string, configProcessor, processor feature.ReqProcessFn) MakeFeature {
-	path += "?dashboardId={dashboard.id}"
-	path += "&dashboardItemId={dashboardItem.id}"
-	path += "&dashboardItemKey={dashboardItem.key}"
-	path += "&dashboardItemViewType={dashboardItem.viewType}"
 	configurable := configPath != "" && configProcessor != nil
+	params := "dashboardId={dashboard.id}"
+	params += "&dashboardItemId={dashboardItem.id}"
+	params += "&dashboardItemKey={dashboardItem.key}"
+	params += "&dashboardItemViewType={dashboardItem.viewType}"
+	if strings.Contains(path, "?") {
+		path += "&" + params
+	} else {
+		path += "?" + params
+	}
 	f.dashboardItems = append(
 		f.dashboardItems,
 		NewDashboardItem(key, path, name, thumbnailUrl, description, configurable),
 	)
 	if configurable {
+		if strings.Contains(configPath, "?") {
+			configPath += "&" + params
+		} else {
+			configPath += "?" + params
+		}
 		f.AddRouteProcessor(configPath, configProcessor)
 	}
 	return f.AddRouteProcessor(path, processor)
