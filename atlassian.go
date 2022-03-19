@@ -633,22 +633,21 @@ func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (ou
 	if hostScriptUrl, ok := r.Context().Value("hostScriptUrl").(string); ok {
 		ctx.SetSpecific("HostScriptUrl_"+f.makeEnv, hostScriptUrl)
 	}
-	if len(f.dashboardItems) > 0 {
-		q := r.URL.Query()
-		if v := q.Get("dashboardId"); v != "" {
-			ctx.SetSpecific("DashboardId_"+f.makeEnv, v)
-		}
-		if v := q.Get("dashboardItemId"); v != "" {
-			ctx.SetSpecific("DashboardItemId_"+f.makeEnv, v)
-		}
-		if v := q.Get("dashboardItemKey"); v != "" {
-			ctx.SetSpecific("DashboardItemKey_"+f.makeEnv, v)
-		}
-		if v := q.Get("dashboardItemViewType"); v != "" {
-			ctx.SetSpecific("DashboardItemViewType_"+f.makeEnv, v)
-		}
+	q := r.URL.Query()
+	if v := q.Get("dashboardId"); v != "" {
+		ctx.SetSpecific("DashboardId_"+f.makeEnv, v)
 	}
-	return ctx
+	if v := q.Get("dashboardItemId"); v != "" {
+		ctx.SetSpecific("DashboardItemId_"+f.makeEnv, v)
+	}
+	if v := q.Get("dashboardItemKey"); v != "" {
+		ctx.SetSpecific("DashboardItemKey_"+f.makeEnv, v)
+	}
+	if v := q.Get("dashboardItemViewType"); v != "" {
+		ctx.SetSpecific("DashboardItemViewType_"+f.makeEnv, v)
+	}
+	out = ctx
+	return
 }
 
 func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
