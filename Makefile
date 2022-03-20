@@ -17,6 +17,8 @@
 #: uncomment to echo instead of execute
 #CMD=echo
 
+SHELL = /bin/bash
+
 BE_PATH ?= ../../../be
 AG_PATH ?= ../../pkg/atlas-gonnect
 
@@ -24,15 +26,23 @@ AG_PACKAGE = github.com/go-enjin/third_party/pkg/atlas-gonnect
 
 ENJENV_BIN ?= $(shell which enjenv)
 
-.PHONY: all help local unlocal tidy build
+BUILD_TAGS = atlassian,database
+
+.PHONY: all help local unlocal tidy build _enjenv
+
+_enjenv:
+	@if [ ! -x "${ENJENV_BIN}" ]; then \
+		echo "enjenv not found"; \
+		false; \
+	fi
 
 help:
-	@echo "usage: make <help|local|unlocal|tidy>"
+	@echo "usage: make <help|build|local|unlocal|tidy>"
 
 build:
-	@go build -v -tags atlassian,database
+	@go build -v -tags ${BUILD_TAGS}
 
-local:
+local: _enjenv
 	@if [ -d "${BE_PATH}" ]; then \
 		${CMD} ${ENJENV_BIN} go-local ${BE_PATH}; \
 	else \
@@ -44,12 +54,12 @@ local:
 		echo "AG_PATH not set or not a directory: \"${AG_PATH}\""; \
 	fi
 
-unlocal:
+unlocal: _enjenv
 	@${CMD} ${ENJENV_BIN} go-unlocal
 	@${CMD} ${ENJENV_BIN} go-unlocal ${AG_PACKAGE}
 
 tidy:
 	@${CMD} go mod tidy -go=1.16 && go mod tidy -go=1.17
 
-be-update:
+be-update: _enjenv
 	@${CMD} GOPROXY=direct go get -u github.com/go-enjin/be
