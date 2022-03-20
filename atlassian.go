@@ -622,29 +622,29 @@ func (f *Feature) Use(s feature.System) feature.MiddlewareFn {
 
 func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (out context.Context) {
 	if f.baseRoute != "" {
-		ctx.SetSpecific("BaseRoute_"+f.makeEnv, f.baseRoute)
+		ctx.SetSpecific("BaseRoute"+f.makeEnv, f.baseRoute)
 	}
 	if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok {
-		ctx.SetSpecific("HostBaseUrl_"+f.makeEnv, hostBaseUrl)
+		ctx.SetSpecific("HostBaseUrl"+f.makeEnv, hostBaseUrl)
 	}
 	if hostStyleUrl, ok := r.Context().Value("hostStylesheetUrl").(string); ok {
-		ctx.SetSpecific("HostStylesheetUrl_"+f.makeEnv, hostStyleUrl)
+		ctx.SetSpecific("HostStylesheetUrl"+f.makeEnv, hostStyleUrl)
 	}
 	if hostScriptUrl, ok := r.Context().Value("hostScriptUrl").(string); ok {
-		ctx.SetSpecific("HostScriptUrl_"+f.makeEnv, hostScriptUrl)
+		ctx.SetSpecific("HostScriptUrl"+f.makeEnv, hostScriptUrl)
 	}
 	q := r.URL.Query()
 	if v := q.Get("dashboardId"); v != "" {
-		ctx.SetSpecific("DashboardId_"+f.makeEnv, v)
+		ctx.SetSpecific("DashboardId"+f.makeEnv, v)
 	}
 	if v := q.Get("dashboardItemId"); v != "" {
-		ctx.SetSpecific("DashboardItemId_"+f.makeEnv, v)
+		ctx.SetSpecific("DashboardItemId"+f.makeEnv, v)
 	}
 	if v := q.Get("dashboardItemKey"); v != "" {
-		ctx.SetSpecific("DashboardItemKey_"+f.makeEnv, v)
+		ctx.SetSpecific("DashboardItemKey"+f.makeEnv, v)
 	}
 	if v := q.Get("dashboardItemViewType"); v != "" {
-		ctx.SetSpecific("DashboardItemViewType_"+f.makeEnv, v)
+		ctx.SetSpecific("DashboardItemViewType"+f.makeEnv, v)
 	}
 	out = ctx
 	return
