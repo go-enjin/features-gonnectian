@@ -59,7 +59,7 @@ unlocal: _enjenv
 	@${CMD} ${ENJENV_BIN} go-unlocal ${AG_PACKAGE}
 
 tidy:
-	@${CMD} go mod tidy -go=1.16 && go mod tidy -go=1.17
+	@${CMD} go mod tidy -go=1.16 && ${CMD} go mod tidy -go=1.17
 
-be-update: _enjenv
+be-update:
 	@${CMD} GOPROXY=direct go get -u github.com/go-enjin/be
