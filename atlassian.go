@@ -17,12 +17,11 @@
 package atlassian
 
 import (
+	goContext "context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/iancoleman/strcase"
-	"github.com/urfave/cli/v2"
 
 	databaseFeature "github.com/go-enjin/be/features/database"
 	"github.com/go-enjin/be/pkg/context"
@@ -35,6 +34,9 @@ import (
 	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/iancoleman/strcase"
+	"github.com/urfave/cli/v2"
+
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect"
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect/middleware"
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect/routes"
@@ -633,6 +635,16 @@ func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (ou
 	if hostScriptUrl, ok := r.Context().Value("hostScriptUrl").(string); ok {
 		ctx.SetSpecific("HostScriptUrl"+f.makeEnv, hostScriptUrl)
 	}
+	if debug, ok := r.Context().Value("debug").(string); ok {
+		switch strings.ToLower(debug) {
+		case "1", "on", "yes", "y", "true":
+			ctx.SetSpecific("Debug", true)
+		default:
+			ctx.SetSpecific("Debug", false)
+		}
+	} else {
+		ctx.SetSpecific("Debug", false)
+	}
 	q := r.URL.Query()
 	if v := q.Get("dashboardId"); v != "" {
 		ctx.SetSpecific("DashboardId"+f.makeEnv, v)
@@ -650,13 +662,32 @@ func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (ou
 	return
 }
 
+func (f *Feature) FindTenantByUrl(url string) (tenant *store.Tenant) {
+	db := database.MustGet()
+	tenant = &store.Tenant{}
+	if err := db.Where("base_url = ?", url).First(tenant).Error; err != nil {
+		log.ErrorF("error looking up tenant for %v: %v", url, err)
+	}
+	return
+}
+
 func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
 	for route, processor := range f.processors {
 		if path := bePath.SafeConcatUrlPath(f.baseRoute, net.TrimQueryParams(route)); path == r.URL.Path {
 			if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok && hostBaseUrl != "" {
-				log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
-				if processor(s, w, r) {
-					return
+				if jsonData, ok := r.Context().Value("tenantContext").(string); ok {
+					var tenantContext map[string]interface{}
+					if err := json.Unmarshal([]byte(jsonData), &tenantContext); err != nil {
+						log.ErrorF("error parsing tenant context json: %v", err)
+					} else {
+						log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
+						ctx := goContext.WithValue(r.Context(), "debug", tenantContext["debug"])
+						if processor(s, w, r.WithContext(ctx)) {
+							return
+						}
+					}
+				} else {
+					log.ErrorF("skipping unknown tenant by base url: %v", hostBaseUrl)
 				}
 			} else {
 				log.WarnF("unauthenticated request for valid %v atlassian route: %v", f.makeName, path)
