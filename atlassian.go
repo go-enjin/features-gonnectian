@@ -683,6 +683,9 @@ func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseW
 			if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok && hostBaseUrl != "" {
 				if jsonData, ok := r.Context().Value("tenantContext").(string); ok {
 					var tenantContext map[string]interface{}
+					if jsonData == "" {
+						jsonData = "{}"
+					}
 					if err := json.Unmarshal([]byte(jsonData), &tenantContext); err != nil {
 						log.ErrorF("error parsing tenant context json: %v", err)
 					} else {
