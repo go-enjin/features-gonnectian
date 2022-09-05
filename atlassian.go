@@ -23,6 +23,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/iancoleman/strcase"
+	"github.com/urfave/cli/v2"
+
 	databaseFeature "github.com/go-enjin/be/features/database"
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/database"
@@ -34,8 +37,6 @@ import (
 	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
-	"github.com/iancoleman/strcase"
-	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect"
 	"github.com/go-enjin/third_party/pkg/atlas-gonnect/middleware"
@@ -565,13 +566,35 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 		}
 		log.DebugF("%v known %v atlassian ip ranges (--ac-validate-ip=true)", f.makeName, len(f.ipRanges))
 	}
-	pluginUrl := net.TrimTrailingSlash(f.descriptor.BaseURL)
-	if f.baseRoute != "" {
-		pluginUrl += f.baseRoute
-	}
-	pluginUrl += "/atlassian-connect.json"
-	log.InfoF("Atlassian Plugin URL [%v]: %v", f.makeName, pluginUrl)
 
+	log.InfoF("Atlassian Plugin URL [%v]: %v", f.makeName, f.GetPluginInstallationURL())
+
+	return
+}
+
+func (f *Feature) GetPluginInstallationURL() (url string) {
+	url = net.TrimTrailingSlash(f.descriptor.BaseURL)
+	if f.baseRoute != "" {
+		url += f.baseRoute
+	}
+	url += "/atlassian-connect.json"
+	return
+}
+
+func (f *Feature) GetPluginDescriptor() (descriptor *Descriptor) {
+	descriptor = &Descriptor{
+		f.descriptor.Authentication,
+		f.descriptor.BaseURL,
+		f.descriptor.Description,
+		f.descriptor.Key,
+		f.descriptor.Lifecycle,
+		f.descriptor.Modules,
+		f.descriptor.Name,
+		f.descriptor.Scopes,
+		f.descriptor.Vendor,
+		f.descriptor.APIMigrations,
+		f.descriptor.Version,
+	}
 	return
 }
 
