@@ -1,6 +1,6 @@
 module github.com/go-enjin/third_party/features/atlassian
 
-go 1.17
+go 1.18
 
 require (
 	github.com/go-enjin/be v0.0.0-20221015040209-5108ff0dbb73
