@@ -30,6 +30,7 @@ import (
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/database"
 	"github.com/go-enjin/be/pkg/feature"
+	beForms "github.com/go-enjin/be/pkg/forms"
 	"github.com/go-enjin/be/pkg/globals"
 	"github.com/go-enjin/be/pkg/log"
 	"github.com/go-enjin/be/pkg/net"
@@ -462,7 +463,7 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	} else {
 		log.DebugF("--%v-ac-base-url not set", f.makeTag)
 	}
-	f.profile.BaseUrl = net.TrimTrailingSlash(f.profile.BaseUrl)
+	f.profile.BaseUrl = bePath.TrimTrailingSlash(f.profile.BaseUrl)
 	f.descriptor.BaseURL = f.profile.BaseUrl
 	if f.descriptor.BaseURL == "" {
 		err = fmt.Errorf("missing --%v-ac-base-url", f.makeTag)
@@ -573,7 +574,7 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 }
 
 func (f *Feature) GetPluginInstallationURL() (url string) {
-	url = net.TrimTrailingSlash(f.descriptor.BaseURL)
+	url = bePath.TrimTrailingSlash(f.descriptor.BaseURL)
 	if f.baseRoute != "" {
 		url += f.baseRoute
 	}
@@ -702,7 +703,7 @@ func (f *Feature) FindTenantByUrl(url string) (tenant *store.Tenant) {
 
 func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
 	for route, processor := range f.processors {
-		if path := bePath.SafeConcatUrlPath(f.baseRoute, net.TrimQueryParams(route)); path == r.URL.Path {
+		if path := bePath.SafeConcatUrlPath(f.baseRoute, beForms.TrimQueryParams(route)); path == r.URL.Path {
 			if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok && hostBaseUrl != "" {
 				if jsonData, ok := r.Context().Value("tenantContext").(string); ok {
 					var tenantContext map[string]interface{}
@@ -758,7 +759,14 @@ func (f *Feature) makeProcessorFromPageFile(path string, filePath string) featur
 func (f *Feature) makeProcessorFromPageString(path string, raw string) feature.ReqProcessFn {
 	var p *page.Page
 	var err error
-	if p, err = page.NewFromString(path, raw); err != nil {
+	var created, updated int64
+	if info, err := globals.BuildFileInfo(); err == nil {
+		if info.HasBirthTime() {
+			created = info.BirthTime().Unix()
+		}
+		updated = info.ModTime().Unix()
+	}
+	if p, err = page.New(path, raw, created, updated); err != nil {
 		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
 	}
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {

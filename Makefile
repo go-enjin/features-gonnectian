@@ -20,9 +20,9 @@
 SHELL = /bin/bash
 
 BE_PATH ?= ../../../be
-AG_PATH ?= ../../pkg/atlas-gonnect
+AG_PATH ?= ../../../github-com-craftamap-atlas-gonnect
 
-AG_PACKAGE = github.com/go-enjin/third_party/pkg/atlas-gonnect
+AG_PACKAGE = github.com/go-enjin/github-com-craftamap-atlas-gonnect
 
 ENJENV_BIN ?= $(shell which enjenv)
 
