@@ -1,5 +1,3 @@
-//go:build atlassian || all
-
 // Copyright (c) 2022  The Go-Enjin Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package atlassian
+package gonnectian
 
 import (
 	goContext "context"
@@ -51,7 +49,7 @@ var _ feature.Middleware = (*Feature)(nil)
 
 var _ feature.PageContextModifier = (*Feature)(nil)
 
-const Tag feature.Tag = "atlassian"
+const Tag feature.Tag = "Gonnectian"
 
 type Feature struct {
 	feature.CMiddleware

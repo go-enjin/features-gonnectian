@@ -1,5 +1,3 @@
-//go:build atlassian || all
-
 // Copyright (c) 2022  The Go-Enjin Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package atlassian
+package gonnectian
 
 import (
 	"encoding/json"
@@ -41,37 +39,4 @@ func (d *Descriptor) ToMap() (out map[string]interface{}, err error) {
 	encoded, err = d.ToJSON()
 	err = json.Unmarshal(encoded, &out)
 	return
-}
-
-func NewGeneralPage(key, url, name, iconUrl string) GeneralPage {
-	return GeneralPage{
-		Key: key,
-		Url: url,
-		Name: Name{
-			Value: name,
-		},
-		Icon: &Icon{
-			Url: iconUrl,
-		},
-		Conditions: []Conditions{
-			{
-				Condition: "user_is_logged_in",
-			},
-		},
-	}
-}
-
-func NewDashboardItem(key, url, name, thumbnailUrl, description string, configurable bool) DashboardItem {
-	return DashboardItem{
-		Key: key,
-		Url: url,
-		Name: Name{
-			Value: name,
-		},
-		ThumbnailUrl: thumbnailUrl,
-		Description: Description{
-			Value: description,
-		},
-		Configurable: configurable,
-	}
 }

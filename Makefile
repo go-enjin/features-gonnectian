@@ -19,14 +19,14 @@
 
 SHELL = /bin/bash
 
-BE_PATH ?= ../../../be
-AG_PATH ?= ../../../github-com-craftamap-atlas-gonnect
+BE_PATH ?= ../be
+AG_PATH ?= ../github-com-craftamap-atlas-gonnect
 
 AG_PACKAGE = github.com/go-enjin/github-com-craftamap-atlas-gonnect
 
 ENJENV_BIN ?= $(shell which enjenv)
 
-BUILD_TAGS = atlassian,database
+BUILD_TAGS = database
 
 .PHONY: all help local unlocal tidy build _enjenv
 

@@ -1,6 +1,4 @@
-//go:build atlassian || all
-
-package atlassian
+package gonnectian
 
 //    Copyright 2020 ShiftLeft Inc.
 //
