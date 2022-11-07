@@ -38,10 +38,10 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
 
-	"github.com/go-enjin/third_party/pkg/atlas-gonnect"
-	"github.com/go-enjin/third_party/pkg/atlas-gonnect/middleware"
-	"github.com/go-enjin/third_party/pkg/atlas-gonnect/routes"
-	"github.com/go-enjin/third_party/pkg/atlas-gonnect/store"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/middleware"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/routes"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
 )
 
 var _ feature.Feature = (*Feature)(nil)
