@@ -93,8 +93,8 @@ github.com/go-curses/term v1.2.2-gocurses.1 h1:wUi7qtaZQO9q7+YpX8nGBDoFJd7aWZeo2
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmpzc4=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20221108175501-9e897957e9d6 h1:qTleaKOE7nn4/7MSt/qf/Teimh4xvErc0Fz7fAF7hHE=
-github.com/go-enjin/be v0.0.0-20221108175501-9e897957e9d6/go.mod h1:+Oc9M6NAQzS5ZaZcvgBxBWtNK8+KCyeTEQt3H84e9wM=
+github.com/go-enjin/be v0.0.0-20221108201303-c1f09c5dabac h1:66WAx9RFA9FjDRa/oEhFdoP4HgUIuqimMl9YhwFK6PU=
+github.com/go-enjin/be v0.0.0-20221108201303-c1f09c5dabac/go.mod h1:+Oc9M6NAQzS5ZaZcvgBxBWtNK8+KCyeTEQt3H84e9wM=
 github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20221107173035-5497ab6915a4 h1:kMbp8zAPmPhOzX+T3PjeHeglH7a/4k513LRdqbdREVQ=
 github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20221107173035-5497ab6915a4/go.mod h1:nd8vG0WrAFi2aLlP9ndEoEf8jB2HIF9es43MsOjUVOI=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a h1:Qr7FpRTxEBnNJtyYj6TyVPs12bn45xSLFkygcSby1g4=
