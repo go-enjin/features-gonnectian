@@ -3,7 +3,7 @@ module github.com/go-enjin/features-gonnectian
 go 1.19
 
 require (
-	github.com/go-enjin/be v0.0.0-20221108201303-c1f09c5dabac
+	github.com/go-enjin/be v0.0.0-20230118230311-511871189c00
 	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20221107173035-5497ab6915a4
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.23.4
@@ -13,6 +13,7 @@ require (
 	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962 // indirect
 	github.com/RoaringBitmap/roaring v0.9.4 // indirect
+	github.com/alecthomas/participle/v2 v2.0.0-beta.5 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
