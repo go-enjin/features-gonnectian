@@ -30,6 +30,7 @@ import (
 	"github.com/go-enjin/be/pkg/feature"
 	beForms "github.com/go-enjin/be/pkg/forms"
 	"github.com/go-enjin/be/pkg/globals"
+	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/log"
 	"github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/ip/ranges/atlassian"
@@ -67,6 +68,8 @@ type Feature struct {
 	ipRanges   []string
 	handlers   map[string]http.Handler
 	processors map[string]feature.ReqProcessFn
+
+	enjin feature.Internals
 
 	addon *gonnect.Addon
 }
@@ -414,6 +417,10 @@ func (f *Feature) Build(b feature.Buildable) (err error) {
 	return
 }
 
+func (f *Feature) Setup(enjin feature.Internals) {
+	f.enjin = enjin
+}
+
 func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	if ctx.IsSet(f.makeTag + "-ac-base-route") {
 		if v := ctx.String(f.makeTag + "-ac-base-route"); v != "" {
@@ -743,7 +750,8 @@ func (f *Feature) makeProcessorFromPageFile(path string, filePath string) featur
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
 		var err error
 		var p *page.Page
-		if p, err = page.NewFromFile(path, filePath); err == nil {
+		theme, _ := f.enjin.GetTheme()
+		if p, err = page.NewFromFile(path, filePath, theme); err == nil {
 			if err = s.ServePage(p, w, r); err != nil {
 				log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
 			}
@@ -764,7 +772,9 @@ func (f *Feature) makeProcessorFromPageString(path string, raw string) feature.R
 		}
 		updated = info.ModTime().Unix()
 	}
-	if p, err = page.New(path, raw, created, updated); err != nil {
+	shasum, _ := sha.DataHash10([]byte(raw))
+	theme, _ := f.enjin.GetTheme()
+	if p, err = page.New(path, raw, shasum, created, updated, theme); err != nil {
 		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
 	}
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
