@@ -99,8 +99,8 @@ github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmp
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
 github.com/go-enjin/be v0.0.0-20230118230311-511871189c00 h1:/6A6ElQRtY6Gvba/HvSc8rRtVJr9qFy+rsrBnPDtjuM=
 github.com/go-enjin/be v0.0.0-20230118230311-511871189c00/go.mod h1:P+Iar2mcbOm5GFtuEJksbU3glJC+sVK9xaa9tbLZhzc=
-github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20221107173035-5497ab6915a4 h1:kMbp8zAPmPhOzX+T3PjeHeglH7a/4k513LRdqbdREVQ=
-github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20221107173035-5497ab6915a4/go.mod h1:nd8vG0WrAFi2aLlP9ndEoEf8jB2HIF9es43MsOjUVOI=
+github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230118232030-2fc058e267b1 h1:M7q5U2Jb+G+YpYa3vOfc55NSO2fM/q3DUsxI4Y1+qVc=
+github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230118232030-2fc058e267b1/go.mod h1:ikQlfn76+jwd/d2stRZs1SJDWOUq1GZJJ8MM/acB57o=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a h1:Qr7FpRTxEBnNJtyYj6TyVPs12bn45xSLFkygcSby1g4=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a/go.mod h1:hId0+St26leJQkTRaFYATZHMGja4wrv0hzf5SwKs3hA=
 github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 h1:aDbd1N1mD8V225rsaYCd7kbt7WFVaDCWwVPpEZscAs0=
