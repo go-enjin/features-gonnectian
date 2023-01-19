@@ -4,13 +4,13 @@ go 1.19
 
 require (
 	github.com/go-enjin/be v0.0.0-20230118230311-511871189c00
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230118232030-2fc058e267b1
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230119211716-bba5ef5de13c
 	github.com/iancoleman/strcase v0.2.0
-	github.com/urfave/cli/v2 v2.23.4
+	github.com/urfave/cli/v2 v2.23.7
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.0 // indirect
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962 // indirect
 	github.com/RoaringBitmap/roaring v0.9.4 // indirect
 	github.com/alecthomas/participle/v2 v2.0.0-beta.5 // indirect
