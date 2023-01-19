@@ -63,3 +63,4 @@ tidy:
 
 be-update:
 	@${CMD} GOPROXY=direct go get github.com/go-enjin/be@latest
+	@${CMD} GOPROXY=direct go get ${AG_PACKAGE}@latest
