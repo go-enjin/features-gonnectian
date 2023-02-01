@@ -674,12 +674,6 @@ func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (ou
 	} else {
 		ctx.SetSpecific("Debug", false)
 	}
-	log.InfoF(
-		"%v - debug=%v (%v)",
-		ctx.String("HostBaseUrl"+f.makeEnv, "error"),
-		ctx.Bool("Debug", false),
-		r.Context().Value("debug"),
-	)
 	q := r.URL.Query()
 	if v := q.Get("dashboardId"); v != "" {
 		ctx.SetSpecific("DashboardId"+f.makeEnv, v)
