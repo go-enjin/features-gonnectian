@@ -1,19 +1,19 @@
 module github.com/go-enjin/features-gonnectian
 
-go 1.19
+go 1.18
 
 require (
-	github.com/go-enjin/be v0.0.0-20230202001255-bb925bfcce8b
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230202002232-0026f2e9d0c3
+	github.com/go-enjin/be v0.0.0-20230202203032-d6578a153b4c
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230202204350-2fcb1a7ac17b
 	github.com/iancoleman/strcase v0.2.0
-	github.com/urfave/cli/v2 v2.24.2
+	github.com/urfave/cli/v2 v2.24.3
 )
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962 // indirect
 	github.com/RoaringBitmap/roaring v0.9.4 // indirect
-	github.com/alecthomas/participle/v2 v2.0.0-beta.5.0.20221205101428-1f05da7649a8 // indirect
+	github.com/alecthomas/participle/v2 v2.0.0-beta.1 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
@@ -38,14 +38,14 @@ require (
 	github.com/fvbommel/sortorder v1.0.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.7 // indirect
+	github.com/go-chi/chi/v5 v5.0.8 // indirect
 	github.com/go-curses/cdk v0.5.12 // indirect
 	github.com/go-curses/ctk v0.5.3 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.0.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 // indirect
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/gofrs/uuid v4.3.0+incompatible // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
@@ -54,20 +54,14 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
-	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgconn v1.13.0 // indirect
-	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/jackc/pgtype v1.12.0 // indirect
-	github.com/jackc/pgx/v4 v4.17.2 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgx/v5 v5.2.0 // indirect
 	github.com/jackdoe/go-gpmctl v0.0.0-20221007100923-dc00b863cb22 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jtolio/gls v4.20.0+incompatible // indirect
-	github.com/kr/pretty v0.3.0 // indirect
 	github.com/leekchan/gtf v0.0.0-20190214083521-5fba33c5b00b // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/maruel/natural v1.1.0 // indirect
@@ -93,17 +87,16 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yookoala/realpath v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
-	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a // indirect
-	golang.org/x/net v0.0.0-20221012135044-0b7e1fb9d458 // indirect
-	golang.org/x/sys v0.0.0-20221010170243-090e33056c14 // indirect
-	golang.org/x/term v0.0.0-20220919170432-7a66f970e087 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/crypto v0.4.0 // indirect
+	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/term v0.3.0 // indirect
+	golang.org/x/text v0.5.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/datatypes v1.0.7 // indirect
-	gorm.io/driver/mysql v1.4.3 // indirect
-	gorm.io/driver/postgres v1.4.5 // indirect
-	gorm.io/driver/sqlite v1.4.3 // indirect
-	gorm.io/gorm v1.24.1 // indirect
+	gorm.io/datatypes v1.1.0 // indirect
+	gorm.io/driver/mysql v1.4.5 // indirect
+	gorm.io/driver/postgres v1.4.6 // indirect
+	gorm.io/driver/sqlite v1.4.4 // indirect
+	gorm.io/gorm v1.24.4 // indirect
 )
