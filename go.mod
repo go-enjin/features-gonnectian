@@ -3,8 +3,8 @@ module github.com/go-enjin/features-gonnectian
 go 1.19
 
 require (
-	github.com/go-enjin/be v0.0.0-20230219164336-a489df8dbf44
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230219165221-c6ef425bbcb7
+	github.com/go-enjin/be v0.0.0-20230219182730-fdabda8c29d2
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230219183414-f7dbdbf244d2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.14.1
 )
@@ -39,8 +39,8 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.8 // indirect
-	github.com/go-curses/cdk v0.5.13 // indirect
-	github.com/go-curses/ctk v0.5.4 // indirect
+	github.com/go-curses/cdk v0.5.14 // indirect
+	github.com/go-curses/ctk v0.5.5 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.0.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
@@ -87,7 +87,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yookoala/realpath v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
-	golang.org/x/crypto v0.4.0 // indirect
+	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
