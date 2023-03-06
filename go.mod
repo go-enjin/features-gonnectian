@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-enjin/be v0.0.0-20230306185847-fc7be4685066
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230219183414-f7dbdbf244d2
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230306194441-1bad366b22eb
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.14.1
 )
