@@ -38,7 +38,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
 
-	"github.com/go-enjin/github-com-craftamap-atlas-gonnect"
+	gonnect "github.com/go-enjin/github-com-craftamap-atlas-gonnect"
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/middleware"
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/routes"
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
@@ -109,14 +109,14 @@ type MakeFeature interface {
 
 func New(name, tag, env string) MakeFeature {
 	if name == "" || tag == "" || env == "" {
-		log.FatalF("atlassian feature requires non-empty name, tag and env arguments")
+		log.FatalF("gonnectian feature requires non-empty name, tag and env arguments")
 		return nil
 	}
 	f := new(Feature)
 	f.makeName = name
 	f.makeTag = tag
 	f.makeEnv = env
-	log.DebugF("new atlassian feature: %v %v", f.makeTag, f.makeEnv)
+	log.DebugF("new gonnectian feature: %v %v", f.makeTag, f.makeEnv)
 	f.Init(f)
 	return f
 }
@@ -143,7 +143,7 @@ func (f *Feature) ProfileSignedInstall(signedInstall bool) MakeFeature {
 
 func (f *Feature) ConnectFromJSON(encoded []byte) MakeFeature {
 	if v, err := NewDescriptorFromJSON(encoded); err != nil {
-		log.FatalF("error decoding %v atlassian json descriptor: %v", f.makeName, err)
+		log.FatalF("error decoding %v gonnectian json descriptor: %v", f.makeName, err)
 	} else {
 		f.descriptor = v
 	}
@@ -309,7 +309,7 @@ func (f *Feature) AddDashboardItemProcessorWithConfig(key, path, name, thumbnail
 
 func (f *Feature) AddConnectModule(name string, module interface{}) MakeFeature {
 	if _, ok := f.descriptor.Modules[name]; ok {
-		log.FatalF("atlassian module exists already: %v", name)
+		log.FatalF("gonnectian module exists already: %v", name)
 		return nil
 	}
 	f.descriptor.Modules[name] = module
@@ -318,7 +318,7 @@ func (f *Feature) AddConnectModule(name string, module interface{}) MakeFeature 
 
 func (f *Feature) AddRouteHandler(route string, handler http.Handler) MakeFeature {
 	if _, ok := f.handlers[route]; ok {
-		log.FatalF("atlassian route handler exists already: %v", route)
+		log.FatalF("gonnectian route handler exists already: %v", route)
 		return nil
 	}
 	f.handlers[route] = handler
@@ -327,10 +327,10 @@ func (f *Feature) AddRouteHandler(route string, handler http.Handler) MakeFeatur
 
 func (f *Feature) AddRouteProcessor(route string, processor feature.ReqProcessFn) MakeFeature {
 	if _, ok := f.processors[route]; ok {
-		log.FatalF("atlassian route processor exists already: %v", route)
+		log.FatalF("gonnectian route processor exists already: %v", route)
 		return nil
 	}
-	log.DebugF("adding atlassian route processor for: %v", route)
+	log.DebugF("adding gonnectian route processor for: %v", route)
 	f.processors[route] = processor
 	return f
 }
@@ -364,48 +364,48 @@ func (f *Feature) Build(b feature.Buildable) (err error) {
 	b.AddFlags(
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-name",
-			Usage:   "specify the Atlassian Connect plugin name",
+			Usage:   "specify the Gonnectian Connect plugin name",
 			EnvVars: []string{globals.EnvPrefix + "_AC_NAME_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-description",
-			Usage:   "specify the Atlassian Connect plugin description",
+			Usage:   "specify the Gonnectian Connect plugin description",
 			EnvVars: []string{globals.EnvPrefix + "_AC_DESCRIPTION_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-key",
-			Usage:   "specify the Atlassian Connect plugin key",
+			Usage:   "specify the Gonnectian Connect plugin key",
 			EnvVars: []string{globals.EnvPrefix + "_AC_KEY_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-version",
-			Usage:   "specify the Atlassian Connect plugin version",
+			Usage:   "specify the Gonnectian Connect plugin version",
 			EnvVars: []string{globals.EnvPrefix + "_AC_VERSION_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-base-url",
-			Usage:   "specify the Atlassian Connect plugin base URL",
+			Usage:   "specify the Gonnectian Connect plugin base URL",
 			EnvVars: []string{globals.EnvPrefix + "_AC_BASE_URL_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-base-route",
-			Usage:   "specify the Atlassian Connect plugin base route",
+			Usage:   "specify the Gonnectian Connect plugin base route",
 			EnvVars: []string{globals.EnvPrefix + "_AC_BASE_ROUTE_" + f.makeEnv},
 		},
 		&cli.StringSliceFlag{
 			Name:    f.makeTag + "-ac-scope",
-			Usage:   "specify the Atlassian Connect plugin scopes",
+			Usage:   "specify the Gonnectian Connect plugin scopes",
 			Value:   cli.NewStringSlice("READ"),
 			EnvVars: []string{globals.EnvPrefix + "_AC_SCOPES_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-vendor-name",
-			Usage:   "specify the Atlassian Connect plugin vendor name",
+			Usage:   "specify the Gonnectian Connect plugin vendor name",
 			EnvVars: []string{globals.EnvPrefix + "_AC_VENDOR_NAME_" + f.makeEnv},
 		},
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-vendor-url",
-			Usage:   "specify the Atlassian Connect plugin vendor URL",
+			Usage:   "specify the Gonnectian Connect plugin vendor URL",
 			EnvVars: []string{globals.EnvPrefix + "_AC_VENDOR_URL_" + f.makeEnv},
 		},
 		&cli.BoolFlag{
