@@ -745,7 +745,7 @@ func (f *Feature) makeProcessorFromPageFile(path string, filePath string) featur
 		var err error
 		var p *page.Page
 		theme, _ := f.enjin.GetTheme()
-		if p, err = page.NewFromFile(path, filePath, theme); err == nil {
+		if p, err = page.NewFromFile(path, filePath, theme, f.enjin.Context()); err == nil {
 			if err = s.ServePage(p, w, r); err != nil {
 				log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
 			}
@@ -768,7 +768,7 @@ func (f *Feature) makeProcessorFromPageString(path string, raw string) feature.R
 	}
 	shasum, _ := sha.DataHash10([]byte(raw))
 	theme, _ := f.enjin.GetTheme()
-	if p, err = page.New(path, raw, shasum, created, updated, theme); err != nil {
+	if p, err = page.New(path, raw, shasum, created, updated, theme, f.enjin.Context()); err != nil {
 		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
 	}
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
