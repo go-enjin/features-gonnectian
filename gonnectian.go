@@ -44,15 +44,21 @@ import (
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
 )
 
-var _ feature.Feature = (*Feature)(nil)
-
-var _ feature.Middleware = (*Feature)(nil)
-
-var _ feature.PageContextModifier = (*Feature)(nil)
+var (
+	_ Feature     = (*CFeature)(nil)
+	_ MakeFeature = (*CFeature)(nil)
+)
 
 const Tag feature.Tag = "Gonnectian"
 
-type Feature struct {
+type Feature interface {
+	feature.Feature
+	feature.Middleware
+	feature.PageContextModifier
+	feature.ContentSecurityPolicyModifier
+}
+
+type CFeature struct {
 	feature.CMiddleware
 
 	makeName       string
@@ -112,7 +118,7 @@ func New(name, tag, env string) MakeFeature {
 		log.FatalF("gonnectian feature requires non-empty name, tag and env arguments")
 		return nil
 	}
-	f := new(Feature)
+	f := new(CFeature)
 	f.makeName = name
 	f.makeTag = tag
 	f.makeEnv = env
@@ -121,27 +127,27 @@ func New(name, tag, env string) MakeFeature {
 	return f
 }
 
-func (f *Feature) EnableIpValidation(enabled bool) MakeFeature {
+func (f *CFeature) EnableIpValidation(enabled bool) MakeFeature {
 	f.validateIp = enabled
 	return f
 }
 
-func (f *Feature) ProfileBaseUrl(baseUrl string) MakeFeature {
+func (f *CFeature) ProfileBaseUrl(baseUrl string) MakeFeature {
 	f.profile.BaseUrl = baseUrl
 	return f
 }
 
-func (f *Feature) ProfileBaseRoute(mount string) MakeFeature {
+func (f *CFeature) ProfileBaseRoute(mount string) MakeFeature {
 	f.baseRoute = mount
 	return f
 }
 
-func (f *Feature) ProfileSignedInstall(signedInstall bool) MakeFeature {
+func (f *CFeature) ProfileSignedInstall(signedInstall bool) MakeFeature {
 	f.profile.SignedInstall = signedInstall
 	return f
 }
 
-func (f *Feature) ConnectFromJSON(encoded []byte) MakeFeature {
+func (f *CFeature) ConnectFromJSON(encoded []byte) MakeFeature {
 	if v, err := NewDescriptorFromJSON(encoded); err != nil {
 		log.FatalF("error decoding %v gonnectian json descriptor: %v", f.makeName, err)
 	} else {
@@ -150,7 +156,7 @@ func (f *Feature) ConnectFromJSON(encoded []byte) MakeFeature {
 	return f
 }
 
-func (f *Feature) ConnectInfo(name, key, description, baseUrl string) MakeFeature {
+func (f *CFeature) ConnectInfo(name, key, description, baseUrl string) MakeFeature {
 	f.descriptor.Name = name
 	f.descriptor.Key = key
 	f.descriptor.Description = description
@@ -159,13 +165,13 @@ func (f *Feature) ConnectInfo(name, key, description, baseUrl string) MakeFeatur
 	return f
 }
 
-func (f *Feature) ConnectVendor(name, url string) MakeFeature {
+func (f *CFeature) ConnectVendor(name, url string) MakeFeature {
 	f.descriptor.Vendor.Name = name
 	f.descriptor.Vendor.URL = url
 	return f
 }
 
-func (f *Feature) ConnectScopes(scopes ...string) MakeFeature {
+func (f *CFeature) ConnectScopes(scopes ...string) MakeFeature {
 	for _, scope := range scopes {
 		scope = strings.ToUpper(scope)
 		if !beStrings.StringInStrings(scope, f.descriptor.Scopes...) {
@@ -178,27 +184,27 @@ func (f *Feature) ConnectScopes(scopes ...string) MakeFeature {
 	return f
 }
 
-func (f *Feature) ConnectInstalledPath(path string) MakeFeature {
+func (f *CFeature) ConnectInstalledPath(path string) MakeFeature {
 	f.descriptor.Lifecycle.Installed = path
 	return f
 }
 
-func (f *Feature) ConnectUnInstalledPath(path string) MakeFeature {
+func (f *CFeature) ConnectUnInstalledPath(path string) MakeFeature {
 	f.descriptor.Lifecycle.UnInstalled = path
 	return f
 }
 
-func (f *Feature) ConnectEnabledPath(path string) MakeFeature {
+func (f *CFeature) ConnectEnabledPath(path string) MakeFeature {
 	f.descriptor.Lifecycle.Enabled = path
 	return f
 }
 
-func (f *Feature) ConnectDisabledPath(path string) MakeFeature {
+func (f *CFeature) ConnectDisabledPath(path string) MakeFeature {
 	f.descriptor.Lifecycle.Disabled = path
 	return f
 }
 
-func (f *Feature) AddGeneralPageFromString(key, path, name, iconUrl string, raw string) MakeFeature {
+func (f *CFeature) AddGeneralPageFromString(key, path, name, iconUrl string, raw string) MakeFeature {
 	f.generalPages = append(
 		f.generalPages,
 		NewGeneralPage(key, path, name, iconUrl),
@@ -206,7 +212,7 @@ func (f *Feature) AddGeneralPageFromString(key, path, name, iconUrl string, raw 
 	return f.AddRouteProcessor(path, f.makeProcessorFromPageString(path, raw))
 }
 
-func (f *Feature) AddGeneralPageFromFile(key, path, name, iconUrl string, filePath string) MakeFeature {
+func (f *CFeature) AddGeneralPageFromFile(key, path, name, iconUrl string, filePath string) MakeFeature {
 	f.generalPages = append(
 		f.generalPages,
 		NewGeneralPage(key, path, name, iconUrl),
@@ -214,7 +220,7 @@ func (f *Feature) AddGeneralPageFromFile(key, path, name, iconUrl string, filePa
 	return f.AddRouteProcessor(path, f.makeProcessorFromPageFile(path, filePath))
 }
 
-func (f *Feature) AddGeneralPageProcessor(key, path, name, iconUrl string, processor feature.ReqProcessFn) MakeFeature {
+func (f *CFeature) AddGeneralPageProcessor(key, path, name, iconUrl string, processor feature.ReqProcessFn) MakeFeature {
 	f.generalPages = append(
 		f.generalPages,
 		NewGeneralPage(key, path, name, iconUrl),
@@ -222,11 +228,11 @@ func (f *Feature) AddGeneralPageProcessor(key, path, name, iconUrl string, proce
 	return f.AddRouteProcessor(path, processor)
 }
 
-func (f *Feature) AddDashboardItemFromString(key, name, thumbnailUrl, description, path, raw string) MakeFeature {
+func (f *CFeature) AddDashboardItemFromString(key, name, thumbnailUrl, description, path, raw string) MakeFeature {
 	return f.AddDashboardItemFromStringWithConfig(key, name, thumbnailUrl, description, path, raw, "", "")
 }
 
-func (f *Feature) AddDashboardItemFromStringWithConfig(key, name, thumbnailUrl, description, path, raw, configPath, configRaw string) MakeFeature {
+func (f *CFeature) AddDashboardItemFromStringWithConfig(key, name, thumbnailUrl, description, path, raw, configPath, configRaw string) MakeFeature {
 	configurable := configPath != "" && configRaw != ""
 	if strings.Contains(path, "?") {
 		path += "&"
@@ -247,11 +253,11 @@ func (f *Feature) AddDashboardItemFromStringWithConfig(key, name, thumbnailUrl, 
 	return f.AddRouteProcessor(path, f.makeProcessorFromPageString(path, raw))
 }
 
-func (f *Feature) AddDashboardItemFromFile(key, name, thumbnailUrl, description, path, filePath string) MakeFeature {
+func (f *CFeature) AddDashboardItemFromFile(key, name, thumbnailUrl, description, path, filePath string) MakeFeature {
 	return f.AddDashboardItemFromFileWithConfig(key, name, thumbnailUrl, description, path, filePath, "", "")
 }
 
-func (f *Feature) AddDashboardItemFromFileWithConfig(key, name, thumbnailUrl, description, path, filePath, configPath, configFile string) MakeFeature {
+func (f *CFeature) AddDashboardItemFromFileWithConfig(key, name, thumbnailUrl, description, path, filePath, configPath, configFile string) MakeFeature {
 	configurable := configPath != "" && configFile != ""
 	params := "dashboardId={dashboard.id}"
 	params += "&dashboardItemId={dashboardItem.id}"
@@ -277,11 +283,11 @@ func (f *Feature) AddDashboardItemFromFileWithConfig(key, name, thumbnailUrl, de
 	return f.AddRouteProcessor(path, f.makeProcessorFromPageFile(path, filePath))
 }
 
-func (f *Feature) AddDashboardItemProcessor(key, path, name, thumbnailUrl, description string, processor feature.ReqProcessFn) MakeFeature {
+func (f *CFeature) AddDashboardItemProcessor(key, path, name, thumbnailUrl, description string, processor feature.ReqProcessFn) MakeFeature {
 	return f.AddDashboardItemProcessorWithConfig(key, path, name, thumbnailUrl, description, "", nil, processor)
 }
 
-func (f *Feature) AddDashboardItemProcessorWithConfig(key, path, name, thumbnailUrl, description, configPath string, configProcessor, processor feature.ReqProcessFn) MakeFeature {
+func (f *CFeature) AddDashboardItemProcessorWithConfig(key, path, name, thumbnailUrl, description, configPath string, configProcessor, processor feature.ReqProcessFn) MakeFeature {
 	configurable := configPath != "" && configProcessor != nil
 	params := "dashboardId={dashboard.id}"
 	params += "&dashboardItemId={dashboardItem.id}"
@@ -307,7 +313,7 @@ func (f *Feature) AddDashboardItemProcessorWithConfig(key, path, name, thumbnail
 	return f.AddRouteProcessor(path, processor)
 }
 
-func (f *Feature) AddConnectModule(name string, module interface{}) MakeFeature {
+func (f *CFeature) AddConnectModule(name string, module interface{}) MakeFeature {
 	if _, ok := f.descriptor.Modules[name]; ok {
 		log.FatalF("gonnectian module exists already: %v", name)
 		return nil
@@ -316,7 +322,7 @@ func (f *Feature) AddConnectModule(name string, module interface{}) MakeFeature 
 	return f
 }
 
-func (f *Feature) AddRouteHandler(route string, handler http.Handler) MakeFeature {
+func (f *CFeature) AddRouteHandler(route string, handler http.Handler) MakeFeature {
 	if _, ok := f.handlers[route]; ok {
 		log.FatalF("gonnectian route handler exists already: %v", route)
 		return nil
@@ -325,7 +331,7 @@ func (f *Feature) AddRouteHandler(route string, handler http.Handler) MakeFeatur
 	return f
 }
 
-func (f *Feature) AddRouteProcessor(route string, processor feature.ReqProcessFn) MakeFeature {
+func (f *CFeature) AddRouteProcessor(route string, processor feature.ReqProcessFn) MakeFeature {
 	if _, ok := f.processors[route]; ok {
 		log.FatalF("gonnectian route processor exists already: %v", route)
 		return nil
@@ -348,19 +354,19 @@ func (f *Feature) Init(this interface{}) {
 	f.processors = make(map[string]feature.ReqProcessFn)
 }
 
-func (f *Feature) Tag() (tag feature.Tag) {
+func (f *CFeature) Tag() (tag feature.Tag) {
 	tag = feature.Tag(strcase.ToKebab(string(Tag) + "-" + f.makeTag))
 	return
 }
 
-func (f *Feature) Depends() (deps feature.Tags) {
+func (f *CFeature) Depends() (deps feature.Tags) {
 	deps = feature.Tags{
 		databaseFeature.Tag,
 	}
 	return
 }
 
-func (f *Feature) Build(b feature.Buildable) (err error) {
+func (f *CFeature) Build(b feature.Buildable) (err error) {
 	b.AddFlags(
 		&cli.StringFlag{
 			Name:    f.makeTag + "-ac-name",
@@ -417,11 +423,11 @@ func (f *Feature) Build(b feature.Buildable) (err error) {
 	return
 }
 
-func (f *Feature) Setup(enjin feature.Internals) {
+func (f *CFeature) Setup(enjin feature.Internals) {
 	f.enjin = enjin
 }
 
-func (f *Feature) Startup(ctx *cli.Context) (err error) {
+func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 	if ctx.IsSet(f.makeTag + "-ac-base-route") {
 		if v := ctx.String(f.makeTag + "-ac-base-route"); v != "" {
 			f.baseRoute = v
@@ -578,7 +584,7 @@ func (f *Feature) Startup(ctx *cli.Context) (err error) {
 	return
 }
 
-func (f *Feature) GetPluginInstallationURL() (url string) {
+func (f *CFeature) GetPluginInstallationURL() (url string) {
 	url = bePath.TrimTrailingSlash(f.descriptor.BaseURL)
 	if f.baseRoute != "" {
 		url += f.baseRoute
@@ -587,7 +593,7 @@ func (f *Feature) GetPluginInstallationURL() (url string) {
 	return
 }
 
-func (f *Feature) GetPluginDescriptor() (descriptor *Descriptor) {
+func (f *CFeature) GetPluginDescriptor() (descriptor *Descriptor) {
 	descriptor = &Descriptor{
 		f.descriptor.Authentication,
 		f.descriptor.BaseURL,
@@ -604,7 +610,7 @@ func (f *Feature) GetPluginDescriptor() (descriptor *Descriptor) {
 	return
 }
 
-func (f *Feature) Apply(s feature.System) (err error) {
+func (f *CFeature) Apply(s feature.System) (err error) {
 	log.DebugF("applying %v atlassian routes", f.makeName)
 	routes.RegisterRoutes(f.baseRoute, f.addon, s.Router())
 	for route, handler := range f.handlers {
@@ -614,7 +620,7 @@ func (f *Feature) Apply(s feature.System) (err error) {
 	return
 }
 
-func (f *Feature) ModifyHeaders(w http.ResponseWriter, r *http.Request) {
+func (f *CFeature) ModifyHeaders(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var hostBaseUrl string
 	if hostBaseUrl, ok = r.Context().Value("hostBaseUrl").(string); !ok {
@@ -632,7 +638,7 @@ func (f *Feature) ModifyHeaders(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (f *Feature) Use(s feature.System) feature.MiddlewareFn {
+func (f *CFeature) Use(s feature.System) feature.MiddlewareFn {
 	log.DebugF("including %v atlassian middleware", f.makeName)
 
 	mw := middleware.NewRequestMiddleware(f.addon, make(map[string]string))
@@ -651,7 +657,7 @@ func (f *Feature) Use(s feature.System) feature.MiddlewareFn {
 	}
 }
 
-func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (out context.Context) {
+func (f *CFeature) FilterPageContext(ctx, _ context.Context, r *http.Request) (out context.Context) {
 	if f.baseRoute != "" {
 		ctx.SetSpecific("BaseRoute"+f.makeEnv, f.baseRoute)
 	}
@@ -691,7 +697,7 @@ func (f *Feature) FilterPageContext(ctx, _ context.Context, r *http.Request) (ou
 	return
 }
 
-func (f *Feature) FindTenantByUrl(url string) (tenant *store.Tenant) {
+func (f *CFeature) FindTenantByUrl(url string) (tenant *store.Tenant) {
 	db := database.MustGet()
 	tenant = &store.Tenant{}
 	if err := db.Where("base_url = ?", url).First(tenant).Error; err != nil {
@@ -700,7 +706,7 @@ func (f *Feature) FindTenantByUrl(url string) (tenant *store.Tenant) {
 	return
 }
 
-func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
+func (f *CFeature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
 	for route, processor := range f.processors {
 		if path := bePath.SafeConcatUrlPath(f.baseRoute, beForms.TrimQueryParams(route)); path == r.URL.Path {
 			if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok && hostBaseUrl != "" {
@@ -730,7 +736,7 @@ func (f *Feature) Process(s feature.Service, next http.Handler, w http.ResponseW
 	next.ServeHTTP(w, r)
 }
 
-func (f *Feature) ipRejected(s feature.Service, w http.ResponseWriter, r *http.Request) bool {
+func (f *CFeature) ipRejected(s feature.Service, w http.ResponseWriter, r *http.Request) bool {
 	if f.validateIp && !net.CheckRequestIpWithList(r, f.ipRanges) {
 		s.Serve403(w, r)
 		address, _ := net.GetIpFromRequest(r)
@@ -740,7 +746,7 @@ func (f *Feature) ipRejected(s feature.Service, w http.ResponseWriter, r *http.R
 	return false
 }
 
-func (f *Feature) makeProcessorFromPageFile(path string, filePath string) feature.ReqProcessFn {
+func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) feature.ReqProcessFn {
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
 		var err error
 		var p *page.Page
@@ -756,7 +762,7 @@ func (f *Feature) makeProcessorFromPageFile(path string, filePath string) featur
 	}
 }
 
-func (f *Feature) makeProcessorFromPageString(path string, raw string) feature.ReqProcessFn {
+func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.ReqProcessFn {
 	var p *page.Page
 	var err error
 	var created, updated int64
