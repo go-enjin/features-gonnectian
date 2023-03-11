@@ -3,7 +3,7 @@ module github.com/go-enjin/features-gonnectian
 go 1.20
 
 require (
-	github.com/go-enjin/be v0.0.0-20230307194918-a8aabfa502ec
+	github.com/go-enjin/be v0.0.0-20230311192845-e6d4fa8d2f06
 	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230306194441-1bad366b22eb
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.14.1
