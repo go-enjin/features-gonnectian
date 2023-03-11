@@ -33,6 +33,7 @@ import (
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/log"
 	"github.com/go-enjin/be/pkg/net"
+	"github.com/go-enjin/be/pkg/net/headers/policy/csp"
 	"github.com/go-enjin/be/pkg/net/ip/ranges/atlassian"
 	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -78,6 +79,8 @@ type CFeature struct {
 	enjin feature.Internals
 
 	addon *gonnect.Addon
+
+	cspDirectives []csp.Directive
 }
 
 type MakeFeature interface {
@@ -111,6 +114,8 @@ type MakeFeature interface {
 	AddConnectModule(name string, module interface{}) MakeFeature
 	AddRouteHandler(route string, handler http.Handler) MakeFeature
 	AddRouteProcessor(route string, processor feature.ReqProcessFn) MakeFeature
+
+	AddContentSecurityPolicyDirective(p csp.Directive) MakeFeature
 }
 
 func New(name, tag, env string) MakeFeature {
@@ -341,7 +346,12 @@ func (f *CFeature) AddRouteProcessor(route string, processor feature.ReqProcessF
 	return f
 }
 
-func (f *Feature) Init(this interface{}) {
+func (f *CFeature) AddContentSecurityPolicyDirective(p csp.Directive) MakeFeature {
+	f.cspDirectives = append(f.cspDirectives, p)
+	return f
+}
+
+func (f *CFeature) Init(this interface{}) {
 	f.CMiddleware.Init(this)
 	f.profile = new(gonnect.Profile)
 	f.descriptor = new(Descriptor)
@@ -620,21 +630,40 @@ func (f *CFeature) Apply(s feature.System) (err error) {
 	return
 }
 
-func (f *CFeature) ModifyHeaders(w http.ResponseWriter, r *http.Request) {
+func (f *CFeature) ModifyContentSecurityPolicy(policy csp.Policy, r *http.Request) (modified csp.Policy) {
 	var ok bool
 	var hostBaseUrl string
 	if hostBaseUrl, ok = r.Context().Value("hostBaseUrl").(string); !ok {
 		log.ErrorF("%v missing hostBaseUrl", f.makeName)
+		modified = policy
 		return
 	}
-	csp := fmt.Sprintf(
-		`default-src 'self' %s https: data: 'unsafe-inline';frame-ancestors %s`,
-		f.profile.BaseUrl,
-		hostBaseUrl,
+	modified = csp.NewPolicy(
+		csp.NewDefaultSrc(
+			csp.Self,
+			csp.UnsafeInline,
+			csp.NewSchemeSource("data"),
+			csp.NewSchemeSource("https"),
+		),
+		csp.NewScriptSrc(
+			csp.Self,
+			csp.UnsafeEval,
+			csp.UnsafeInline,
+			csp.NewSchemeSource("data"),
+			csp.NewSchemeSource("https"),
+			csp.NewHostSource(hostBaseUrl),
+			csp.NewHostSource(f.profile.BaseUrl),
+			csp.NewHostSource("*.atl-pass.net"),
+			// csp.NewHostSource("connect-cdn.atl-pass.net"),
+			// csp.NewHostSource("jira-frontend-static.prod.public.atl-paas.net"),
+		),
+		csp.NewFormAction(csp.Self),
+		csp.NewFrameAncestors(csp.Self, csp.NewHostSource(hostBaseUrl)),
 	)
-	w.Header().Set("Content-Security-Policy", csp)
-	w.Header().Set("X-Content-Security-Policy", csp)
-	log.DebugF("modified content security policy: %v", csp)
+	for _, d := range f.cspDirectives {
+		modified = modified.Add(d)
+	}
+	log.DebugF("modified content security policy: %#+v", modified.Value())
 	return
 }
 
