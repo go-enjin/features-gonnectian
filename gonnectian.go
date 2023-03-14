@@ -99,6 +99,8 @@ type MakeFeature interface {
 	ConnectUnInstalledPath(path string) MakeFeature
 	ConnectEnabledPath(path string) MakeFeature
 	ConnectDisabledPath(path string) MakeFeature
+	ConnectApiVersion(apiVersion int) MakeFeature
+	ConnectLicensing(enable bool) MakeFeature
 
 	AddGeneralPageFromString(key, path, name, iconUrl string, raw string) MakeFeature
 	AddGeneralPageFromFile(key, path, name, iconUrl string, filePath string) MakeFeature
@@ -206,6 +208,16 @@ func (f *CFeature) ConnectEnabledPath(path string) MakeFeature {
 
 func (f *CFeature) ConnectDisabledPath(path string) MakeFeature {
 	f.descriptor.Lifecycle.Disabled = path
+	return f
+}
+
+func (f *CFeature) ConnectApiVersion(apiVersion int) MakeFeature {
+	f.descriptor.ApiVersion = apiVersion
+	return f
+}
+
+func (f *CFeature) ConnectLicensing(enable bool) MakeFeature {
+	f.descriptor.Licensing = enable
 	return f
 }
 
@@ -354,7 +366,7 @@ func (f *CFeature) AddContentSecurityPolicyDirective(p csp.Directive) MakeFeatur
 func (f *CFeature) Init(this interface{}) {
 	f.CMiddleware.Init(this)
 	f.profile = new(gonnect.Profile)
-	f.descriptor = new(Descriptor)
+	f.descriptor = NewDescriptor()
 	f.descriptor.APIMigrations.SignedInstall = true
 	f.descriptor.Version = globals.Version
 	f.descriptor.Modules = make(map[string]interface{})
@@ -604,19 +616,7 @@ func (f *CFeature) GetPluginInstallationURL() (url string) {
 }
 
 func (f *CFeature) GetPluginDescriptor() (descriptor *Descriptor) {
-	descriptor = &Descriptor{
-		f.descriptor.Authentication,
-		f.descriptor.BaseURL,
-		f.descriptor.Description,
-		f.descriptor.Key,
-		f.descriptor.Lifecycle,
-		f.descriptor.Modules,
-		f.descriptor.Name,
-		f.descriptor.Scopes,
-		f.descriptor.Vendor,
-		f.descriptor.APIMigrations,
-		f.descriptor.Version,
-	}
+	descriptor = f.descriptor.Copy()
 	return
 }
 
