@@ -629,51 +629,55 @@ func (f *CFeature) Apply(s feature.System) (err error) {
 	return
 }
 
-func (f *CFeature) ModifyContentSecurityPolicy(policy csp.Policy, r *http.Request) (modified csp.Policy) {
+func (f *CFeature) modifyContentSecurityPolicy(policy csp.Policy, r *http.Request) (modified csp.Policy) {
 	var ok bool
 	var hostBaseUrl string
 	if hostBaseUrl, ok = r.Context().Value("hostBaseUrl").(string); !ok {
 		log.ErrorF("%v missing hostBaseUrl", f.makeName)
 		modified = policy
+		// panic("critical error: request denied with 500 response")
 		return
 	}
 	modified = csp.NewPolicy(
-		csp.NewDefaultSrc(
-			csp.Self,
-			csp.UnsafeInline,
-			csp.NewSchemeSource("data"),
-			csp.NewSchemeSource("https"),
-		),
-		csp.NewScriptSrc(
-			csp.Self,
-			csp.UnsafeEval,
-			csp.UnsafeInline,
-			csp.NewSchemeSource("data"),
-			csp.NewSchemeSource("https"),
-			csp.NewHostSource(hostBaseUrl),
-			csp.NewHostSource(f.profile.BaseUrl),
-			csp.NewHostSource("*.atl-pass.net"),
-			// csp.NewHostSource("connect-cdn.atl-pass.net"),
-			// csp.NewHostSource("jira-frontend-static.prod.public.atl-paas.net"),
-		),
-		csp.NewFormAction(csp.Self),
-		csp.NewFrameAncestors(csp.Self, csp.NewHostSource(hostBaseUrl)),
+		append(policy.Directives(),
+			csp.NewDefaultSrc(
+				csp.Self,
+				csp.UnsafeInline,
+				csp.NewSchemeSource("data"),
+				csp.NewSchemeSource("https"),
+			),
+			csp.NewScriptSrc(
+				csp.Self,
+				csp.UnsafeEval,
+				csp.UnsafeInline,
+				csp.NewSchemeSource("data"),
+				csp.NewSchemeSource("https"),
+				csp.NewHostSource(hostBaseUrl),
+				csp.NewHostSource(f.profile.BaseUrl),
+				csp.NewHostSource("*.atl-pass.net"),
+				// csp.NewHostSource("connect-cdn.atl-pass.net"),
+				// csp.NewHostSource("jira-frontend-static.prod.public.atl-paas.net"),
+			),
+			csp.NewFormAction(csp.Self),
+			csp.NewFrameAncestors(csp.Self, csp.NewHostSource(hostBaseUrl)),
+		)...,
 	)
 	for _, d := range f.cspDirectives {
 		modified = modified.Add(d)
 	}
-	log.DebugF("modified content security policy: %#+v", modified.Value())
+	// log.DebugF("modified content security policy: %#+v", modified.Value())
 	return
 }
 
 func (f *CFeature) Use(s feature.System) feature.MiddlewareFn {
 	log.DebugF("including %v atlassian middleware", f.makeName)
-
 	mw := middleware.NewRequestMiddleware(f.addon, make(map[string]string))
 	return func(next http.Handler) http.Handler {
 		this := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if beStrings.StringInStrings(r.URL.Path, routes.RegisteredRoutes...) {
 				if f.ipRejected(s, w, r) {
+					address, _ := net.GetIpFromRequest(r)
+					log.ErrorF("address denied by gonnectian IP restrictions: %v - %v", address, r.URL.String())
 					return
 				}
 			}
