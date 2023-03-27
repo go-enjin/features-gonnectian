@@ -71,10 +71,10 @@ github.com/go-curses/term v1.2.2-gocurses.1 h1:wUi7qtaZQO9q7+YpX8nGBDoFJd7aWZeo2
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmpzc4=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20230311192845-e6d4fa8d2f06 h1:qSaBZD8Vx8f4KCqDuUQr3HH2oBs2BfDw8GzIFMj7HlA=
-github.com/go-enjin/be v0.0.0-20230311192845-e6d4fa8d2f06/go.mod h1:+N7HuT3rCLsEqwQWOhZqIF1oW5HbNb8DedNdC03Ut/g=
-github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230306194441-1bad366b22eb h1:HQxN6kg/OylnbqM2mVMOm+vKLA+GNtK8Xyx2RsTfZgw=
-github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230306194441-1bad366b22eb/go.mod h1:gFQ+RRX6LHauxxG74Sck8p6mxUWWwjU7C+L6Po7YilA=
+github.com/go-enjin/be v0.0.0-20230320204704-f3f333993b18 h1:v8kN+HD5gp+Ua1P/rPOEOHnqJZq2M4CFok4cnt8b+4A=
+github.com/go-enjin/be v0.0.0-20230320204704-f3f333993b18/go.mod h1:+N7HuT3rCLsEqwQWOhZqIF1oW5HbNb8DedNdC03Ut/g=
+github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230327210813-7d5b556b4fd6 h1:fZI8EqSyql1cwliLcZ65/l0Vb+mprfQUBGsJWOu6JNE=
+github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230327210813-7d5b556b4fd6/go.mod h1:DtfQOlenFwqr6CA5V67aQjdeQtfld7k6rT+g6wg2CEM=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a h1:Qr7FpRTxEBnNJtyYj6TyVPs12bn45xSLFkygcSby1g4=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a/go.mod h1:hId0+St26leJQkTRaFYATZHMGja4wrv0hzf5SwKs3hA=
 github.com/go-enjin/golang-org-x-text v0.0.0-20230219204830-4f2b7b481f16 h1:zTYpQns1lO4pcSITsp3Vr9n98aVCBE+quahtuxK931c=
