@@ -35,6 +35,7 @@ import (
 	"github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/headers/policy/csp"
 	"github.com/go-enjin/be/pkg/net/ip/ranges/atlassian"
+	"github.com/go-enjin/be/pkg/net/serve"
 	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
@@ -54,9 +55,9 @@ const Tag feature.Tag = "Gonnectian"
 
 type Feature interface {
 	feature.Feature
+	feature.Processor
 	feature.Middleware
 	feature.PageContextModifier
-	feature.ContentSecurityPolicyModifier
 }
 
 type CFeature struct {
@@ -75,6 +76,9 @@ type CFeature struct {
 	ipRanges   []string
 	handlers   map[string]http.Handler
 	processors map[string]feature.ReqProcessFn
+
+	connectEnabledHandler  http.Handler
+	connectDisabledHandler http.Handler
 
 	enjin feature.Internals
 
@@ -95,12 +99,11 @@ type MakeFeature interface {
 	ConnectInfo(name, key, description, baseUrl string) MakeFeature
 	ConnectVendor(name, url string) MakeFeature
 	ConnectScopes(scopes ...string) MakeFeature
-	ConnectInstalledPath(path string) MakeFeature
-	ConnectUnInstalledPath(path string) MakeFeature
-	ConnectEnabledPath(path string) MakeFeature
-	ConnectDisabledPath(path string) MakeFeature
 	ConnectApiVersion(apiVersion int) MakeFeature
 	ConnectLicensing(enable bool) MakeFeature
+
+	ConnectEnabledHandler(handler http.Handler) MakeFeature
+	ConnectDisabledHandler(handler http.Handler) MakeFeature
 
 	AddGeneralPageFromString(key, path, name, iconUrl string, raw string) MakeFeature
 	AddGeneralPageFromFile(key, path, name, iconUrl string, filePath string) MakeFeature
@@ -191,26 +194,6 @@ func (f *CFeature) ConnectScopes(scopes ...string) MakeFeature {
 	return f
 }
 
-func (f *CFeature) ConnectInstalledPath(path string) MakeFeature {
-	f.descriptor.Lifecycle.Installed = path
-	return f
-}
-
-func (f *CFeature) ConnectUnInstalledPath(path string) MakeFeature {
-	f.descriptor.Lifecycle.UnInstalled = path
-	return f
-}
-
-func (f *CFeature) ConnectEnabledPath(path string) MakeFeature {
-	f.descriptor.Lifecycle.Enabled = path
-	return f
-}
-
-func (f *CFeature) ConnectDisabledPath(path string) MakeFeature {
-	f.descriptor.Lifecycle.Disabled = path
-	return f
-}
-
 func (f *CFeature) ConnectApiVersion(apiVersion int) MakeFeature {
 	f.descriptor.ApiVersion = apiVersion
 	return f
@@ -218,6 +201,16 @@ func (f *CFeature) ConnectApiVersion(apiVersion int) MakeFeature {
 
 func (f *CFeature) ConnectLicensing(enable bool) MakeFeature {
 	f.descriptor.Licensing = enable
+	return f
+}
+
+func (f *CFeature) ConnectEnabledHandler(handler http.Handler) MakeFeature {
+	f.connectEnabledHandler = handler
+	return f
+}
+
+func (f *CFeature) ConnectDisabledHandler(handler http.Handler) MakeFeature {
+	f.connectDisabledHandler = handler
 	return f
 }
 
@@ -580,6 +573,8 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 
 	f.descriptor.Authentication = Authentication{Type: "JWT"}
 	f.descriptor.Lifecycle.Installed = bePath.JoinWithSlash(f.baseRoute, "installed")
+	f.descriptor.Lifecycle.Enabled = bePath.JoinWithSlash(f.baseRoute, "enabled")
+	f.descriptor.Lifecycle.Disabled = bePath.JoinWithSlash(f.baseRoute, "disabled")
 	f.descriptor.Lifecycle.UnInstalled = bePath.JoinWithSlash(f.baseRoute, "uninstalled")
 
 	var dm map[string]interface{}
@@ -621,7 +616,58 @@ func (f *CFeature) GetPluginDescriptor() (descriptor *Descriptor) {
 
 func (f *CFeature) Apply(s feature.System) (err error) {
 	log.DebugF("applying %v atlassian routes", f.makeName)
-	routes.RegisterRoutes(f.baseRoute, f.addon, s.Router())
+	routes.RegisterRoutes(
+		f.baseRoute, f.addon, s.Router(),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var ee error
+			var hostBaseUrl string
+			var tenant *store.Tenant
+			var tenantContext map[string]interface{}
+			if hostBaseUrl, tenant, tenantContext, ee = f.parseConnectRequest(r); ee != nil {
+				log.ErrorF("error parsing connect request: %v", ee)
+				serve.Serve404(w, r)
+				return
+			}
+
+			// make a tenant context parsing wrapper func
+			// update the license and store
+			// pass tenant context to dashboard items, templates
+			// if not allow-unlicensed, render gadget error content instead of ui
+
+			// log.InfoF("tenant hit enabled handler: %v - %#+v - %#+v", hostBaseUrl, tenant, tenantContext)
+			if q := r.URL.Query(); q != nil && q.Has("lic") {
+				license := q.Get("lic")
+				log.InfoF("tenant license is \"%v\"", license)
+				tenantContext["license"] = license
+
+				if license == "none" {
+					if v, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !v) || !ok {
+						tenantContext["reject"] = "unlicensed"
+						log.ErrorF("tenant is not allowed-unlicensed, must reject")
+					} else {
+						delete(tenantContext, "reject")
+					}
+				}
+
+				var data []byte
+				if data, ee = json.Marshal(tenantContext); ee != nil {
+					log.ErrorF("error marshalling json tenantContext: %v - %v", hostBaseUrl, ee)
+				}
+				tenant.Context = data
+				if tenant, ee = f.addon.Store.Set(tenant); ee != nil {
+					log.ErrorF("error storing tenant on enabled: %v - %v", hostBaseUrl, ee)
+				}
+				serve.Serve204(w, r)
+				return
+			}
+
+			log.ErrorF("%v missing lic query parameter", f.makeName)
+			serve.Serve404(w, r)
+			return
+
+		}),
+		f.connectDisabledHandler,
+	)
 	for route, handler := range f.handlers {
 		log.DebugF("including %v atlassian custom route handler: %v", f.makeName, route)
 		s.Router().Handle(route, middleware.NewAuthenticationMiddleware(f.addon, false)(handler))
@@ -712,6 +758,9 @@ func (f *CFeature) FilterPageContext(ctx, _ context.Context, r *http.Request) (o
 	} else {
 		ctx.SetSpecific("Debug", false)
 	}
+	if reject, ok := r.Context().Value("reject").(string); ok && reject != "" {
+		ctx.SetSpecific("Reject", reject)
+	}
 	q := r.URL.Query()
 	if v := q.Get("dashboardId"); v != "" {
 		ctx.SetSpecific("DashboardId"+f.makeEnv, v)
@@ -741,26 +790,28 @@ func (f *CFeature) FindTenantByUrl(url string) (tenant *store.Tenant) {
 func (f *CFeature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
 	for route, processor := range f.processors {
 		if path := bePath.SafeConcatUrlPath(f.baseRoute, beForms.TrimQueryParams(route)); path == r.URL.Path {
-			if hostBaseUrl, ok := r.Context().Value("hostBaseUrl").(string); ok && hostBaseUrl != "" {
-				if jsonData, ok := r.Context().Value("tenantContext").(string); ok {
-					var tenantContext map[string]interface{}
-					if jsonData == "" {
-						jsonData = "{}"
-					}
-					if err := json.Unmarshal([]byte(jsonData), &tenantContext); err != nil {
-						log.ErrorF("error parsing tenant context json: %v", err)
-					} else {
-						log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
-						ctx := goContext.WithValue(r.Context(), "debug", tenantContext["debug"])
-						if processor(s, w, r.WithContext(ctx)) {
-							return
-						}
-					}
-				} else {
-					log.ErrorF("skipping unknown tenant by base url: %v", hostBaseUrl)
-				}
+			if hostBaseUrl, _, tenantContext, err := f.parseConnectRequest(r); err != nil {
+				log.ErrorF("error parsing connect request: %v", err)
 			} else {
-				log.WarnF("unauthenticated request for valid %v atlassian route: %v", f.makeName, path)
+				log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
+
+				policy := s.ContentSecurityPolicy().GetRequestPolicy(r)
+				// log.DebugF("modified content security policy [before] : %#+v", policy.Value())
+				policy = f.modifyContentSecurityPolicy(policy, r)
+				// log.DebugF("modified content security policy [after] : %#+v", policy.Value())
+				r = s.ContentSecurityPolicy().SetRequestPolicy(r, policy)
+
+				ctx := goContext.WithValue(r.Context(), "debug", tenantContext["debug"])
+				if license, ok := tenantContext["license"].(string); ok && license == "none" {
+					if allowedUnlicensed, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !allowedUnlicensed) || !ok {
+						ctx = goContext.WithValue(ctx, "reject", "unlicensed")
+						log.ErrorF("rejecting unlicensed tenant: %v - %#+v", hostBaseUrl, tenantContext)
+					}
+				}
+
+				if processor(s, w, r.Clone(ctx)) {
+					return
+				}
 			}
 		}
 	}
@@ -815,4 +866,30 @@ func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.
 		}
 		return err == nil
 	}
+}
+
+func (f *CFeature) parseConnectRequest(r *http.Request) (hostBaseUrl string, tenant *store.Tenant, tenantContext map[string]interface{}, err error) {
+	var ok bool
+	if hostBaseUrl, ok = r.Context().Value("hostBaseUrl").(string); !ok || hostBaseUrl == "" {
+		err = fmt.Errorf("%v missing hostBaseUrl", f.makeName)
+		return
+	}
+	if tenant = f.FindTenantByUrl(hostBaseUrl); tenant == nil {
+		err = fmt.Errorf("%v tenant not found", f.makeName)
+		return
+	}
+
+	var jsonData string
+	if jsonData, ok = r.Context().Value("tenantContext").(string); !ok {
+		err = fmt.Errorf("%v missing tenantContext", f.makeName)
+		return
+	}
+	if jsonData == "" {
+		jsonData = "{}"
+	}
+	if err = json.Unmarshal([]byte(jsonData), &tenantContext); err != nil {
+		err = fmt.Errorf("error parsing tenant context json: %v - %v", f.makeName, err)
+		return
+	}
+	return
 }
