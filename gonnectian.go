@@ -369,7 +369,6 @@ func (f *CFeature) Init(this interface{}) {
 	f.descriptor = NewDescriptor()
 	f.descriptor.APIMigrations.SignedInstall = true
 	f.descriptor.Version = globals.Version
-	f.descriptor.Modules = make(map[string]interface{})
 	f.generalPages = make(GeneralPages, 0)
 	f.dashboardItems = make(DashboardItems, 0)
 	f.handlers = make(map[string]http.Handler)

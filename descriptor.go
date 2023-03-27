@@ -40,6 +40,7 @@ type Descriptor struct {
 
 func NewDescriptor() (d *Descriptor) {
 	d = new(Descriptor)
+	d.Modules = make(map[string]interface{})
 	return
 }
 
