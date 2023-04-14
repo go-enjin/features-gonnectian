@@ -879,6 +879,11 @@ func (f *CFeature) parseConnectRequest(r *http.Request) (hostBaseUrl string, ten
 		return
 	}
 
+	var license string
+	if license, ok = r.Context().Value("license").(string); !ok || license == "" {
+		license = "none"
+	}
+
 	var jsonData string
 	if jsonData, ok = r.Context().Value("tenantContext").(string); !ok {
 		err = fmt.Errorf("%v missing tenantContext", f.makeName)
@@ -891,5 +896,7 @@ func (f *CFeature) parseConnectRequest(r *http.Request) (hostBaseUrl string, ten
 		err = fmt.Errorf("error parsing tenant context json: %v - %v", f.makeName, err)
 		return
 	}
+
+	tenantContext["license"] = license
 	return
 }
