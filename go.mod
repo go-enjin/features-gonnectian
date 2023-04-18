@@ -3,8 +3,8 @@ module github.com/go-enjin/features-gonnectian
 go 1.20
 
 require (
-	github.com/go-enjin/be v0.0.0-20230408162355-efadf2fb1637
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230408162547-851660070e0d
+	github.com/go-enjin/be v0.0.0-20230418192602-f5f92d041ba5
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230418192705-9fde8f91b5a3
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.14.1
 )
@@ -39,8 +39,8 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.8 // indirect
-	github.com/go-curses/cdk v0.5.14 // indirect
-	github.com/go-curses/ctk v0.5.6 // indirect
+	github.com/go-curses/cdk v0.5.15 // indirect
+	github.com/go-curses/ctk v0.5.7 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.0.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
