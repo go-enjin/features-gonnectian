@@ -3,10 +3,11 @@ module github.com/go-enjin/features-gonnectian
 go 1.20
 
 require (
-	github.com/go-enjin/be v0.0.0-20230425221143-acc8bde0c894
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230425223511-4e6beb27e87f
+	github.com/go-enjin/be v0.0.0-20230429194645-4a8446103a4b
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.0.0-20230429194939-f45ee884da77
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.14.1
+	gorm.io/gorm v1.25.0
 )
 
 require (
@@ -56,7 +57,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgx/v5 v5.2.0 // indirect
+	github.com/jackc/pgx/v5 v5.3.0 // indirect
 	github.com/jackdoe/go-gpmctl v0.0.0-20221007100923-dc00b863cb22 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -95,9 +96,8 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/datatypes v1.1.0 // indirect
-	gorm.io/driver/mysql v1.4.5 // indirect
-	gorm.io/driver/postgres v1.4.6 // indirect
-	gorm.io/driver/sqlite v1.4.4 // indirect
-	gorm.io/gorm v1.24.4 // indirect
+	gorm.io/datatypes v1.2.0 // indirect
+	gorm.io/driver/mysql v1.5.0 // indirect
+	gorm.io/driver/postgres v1.5.0 // indirect
+	gorm.io/driver/sqlite v1.5.0 // indirect
 )
