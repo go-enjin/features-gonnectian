@@ -23,10 +23,9 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
+	"gorm.io/gorm"
 
-	databaseFeature "github.com/go-enjin/be/features/database"
 	"github.com/go-enjin/be/pkg/context"
-	"github.com/go-enjin/be/pkg/database"
 	"github.com/go-enjin/be/pkg/feature"
 	beForms "github.com/go-enjin/be/pkg/forms"
 	"github.com/go-enjin/be/pkg/globals"
@@ -84,11 +83,17 @@ type CFeature struct {
 
 	addon *gonnect.Addon
 
+	dbTag   string
+	dbTable string
+
 	cspDirectives []csp.Directive
 }
 
 type MakeFeature interface {
 	feature.MakeFeature
+
+	SetGormDB(tag string) MakeFeature
+	SetTableName(table string) MakeFeature
 
 	EnableIpValidation(enabled bool) MakeFeature
 	ProfileBaseUrl(baseUrl string) MakeFeature
@@ -134,6 +139,16 @@ func New(name, tag, env string) MakeFeature {
 	f.makeEnv = env
 	log.DebugF("new gonnectian feature: %v %v", f.makeTag, f.makeEnv)
 	f.Init(f)
+	return f
+}
+
+func (f *CFeature) SetGormDB(tag string) MakeFeature {
+	f.dbTag = tag
+	return f
+}
+
+func (f *CFeature) SetTableName(table string) MakeFeature {
+	f.dbTable = table
 	return f
 }
 
@@ -358,6 +373,8 @@ func (f *CFeature) AddContentSecurityPolicyDirective(p csp.Directive) MakeFeatur
 
 func (f *CFeature) Init(this interface{}) {
 	f.CMiddleware.Init(this)
+	f.dbTag = "gonnectian"
+	f.dbTable = ""
 	f.profile = new(gonnect.Profile)
 	f.descriptor = NewDescriptor()
 	f.descriptor.APIMigrations.SignedInstall = true
@@ -370,13 +387,6 @@ func (f *CFeature) Init(this interface{}) {
 
 func (f *CFeature) Tag() (tag feature.Tag) {
 	tag = feature.Tag(strcase.ToKebab(string(Tag) + "-" + f.makeTag))
-	return
-}
-
-func (f *CFeature) Depends() (deps feature.Tags) {
-	deps = feature.Tags{
-		databaseFeature.Tag,
-	}
 	return
 }
 
@@ -441,7 +451,28 @@ func (f *CFeature) Setup(enjin feature.Internals) {
 	f.enjin = enjin
 }
 
+func (f *CFeature) mustDB() (db *gorm.DB) {
+	if v := f.enjin.MustDB(f.dbTag); v != nil {
+		var ok bool
+		if db, ok = v.(*gorm.DB); !ok {
+			log.FatalDF(1, "expected *gorm.DB, found: %T", v)
+		}
+	}
+	return
+}
+
+func (f *CFeature) tx() (tx *gorm.DB) {
+	tx = f.mustDB().Scopes(func(tx *gorm.DB) *gorm.DB {
+		if f.dbTable != "" {
+			return tx.Table(f.dbTable)
+		}
+		return tx
+	})
+	return
+}
+
 func (f *CFeature) Startup(ctx *cli.Context) (err error) {
+	_ = f.mustDB() // panic if expected database not present
 	if ctx.IsSet(f.makeTag + "-ac-base-route") {
 		if v := ctx.String(f.makeTag + "-ac-base-route"); v != "" {
 			f.baseRoute = v
@@ -581,8 +612,9 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 	if dm, err = f.descriptor.ToMap(); err != nil {
 		return
 	}
+
 	var s *store.Store
-	if s, err = store.NewFrom(database.Instance); err != nil {
+	if s, err = store.NewTableFrom(f.dbTable, f.mustDB()); err != nil {
 		return
 	}
 
@@ -779,7 +811,7 @@ func (f *CFeature) FilterPageContext(ctx, _ context.Context, r *http.Request) (o
 }
 
 func (f *CFeature) FindTenantByUrl(url string) (tenant *store.Tenant) {
-	db := database.MustGet()
+	db := f.tx()
 	tenant = &store.Tenant{}
 	if err := db.Where("base_url = ?", url).First(tenant).Error; err != nil {
 		log.ErrorF("error looking up tenant for %v: %v", url, err)
