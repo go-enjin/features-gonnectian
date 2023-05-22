@@ -19,8 +19,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
+	times "github.com/go-enjin/github-com-djherbis-times"
 	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 	"gorm.io/gorm"
@@ -29,7 +32,6 @@ import (
 	"github.com/go-enjin/be/pkg/feature"
 	beForms "github.com/go-enjin/be/pkg/forms"
 	"github.com/go-enjin/be/pkg/globals"
-	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/log"
 	"github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/headers/policy/csp"
@@ -38,6 +40,7 @@ import (
 	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/go-enjin/be/pkg/userbase"
 
 	gonnect "github.com/go-enjin/github-com-craftamap-atlas-gonnect"
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/middleware"
@@ -45,52 +48,26 @@ import (
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
 )
 
+// TODO: implement a v2 of gonnectian as a feature filesystem
+
+const Tag feature.Tag = "gonnectian"
+
 var (
 	_ Feature     = (*CFeature)(nil)
 	_ MakeFeature = (*CFeature)(nil)
 )
 
-const Tag feature.Tag = "Gonnectian"
-
 type Feature interface {
 	feature.Feature
 	feature.Processor
-	feature.Middleware
+	feature.UseMiddleware
+	feature.ApplyMiddleware
 	feature.PageContextModifier
-}
-
-type CFeature struct {
-	feature.CMiddleware
-
-	makeName       string
-	makeTag        string
-	makeEnv        string
-	baseRoute      string
-	profile        *gonnect.Profile
-	descriptor     *Descriptor
-	generalPages   GeneralPages
-	dashboardItems DashboardItems
-
-	validateIp bool
-	ipRanges   []string
-	handlers   map[string]http.Handler
-	processors map[string]feature.ReqProcessFn
-
-	connectEnabledHandler  http.Handler
-	connectDisabledHandler http.Handler
-
-	enjin feature.Internals
-
-	addon *gonnect.Addon
-
-	dbTag   string
-	dbTable string
-
-	cspDirectives []csp.Directive
+	userbase.UserActionsProvider
 }
 
 type MakeFeature interface {
-	feature.MakeFeature
+	Make() Feature
 
 	SetGormDB(tag string) MakeFeature
 	SetTableName(table string) MakeFeature
@@ -128,6 +105,36 @@ type MakeFeature interface {
 	AddContentSecurityPolicyDirective(p csp.Directive) MakeFeature
 }
 
+type CFeature struct {
+	feature.CFeature
+
+	makeName       string
+	makeTag        string
+	makeEnv        string
+	baseRoute      string
+	profile        *gonnect.Profile
+	descriptor     *Descriptor
+	generalPages   GeneralPages
+	dashboardItems DashboardItems
+
+	validateIp bool
+	ipRanges   []string
+	handlers   map[string]http.Handler
+	processors map[string]feature.ReqProcessFn
+
+	connectEnabledHandler  http.Handler
+	connectDisabledHandler http.Handler
+
+	enjin feature.Internals
+
+	addon *gonnect.Addon
+
+	dbTag   string
+	dbTable string
+
+	cspDirectives []csp.Directive
+}
+
 func New(name, tag, env string) MakeFeature {
 	if name == "" || tag == "" || env == "" {
 		log.FatalF("gonnectian feature requires non-empty name, tag and env arguments")
@@ -137,9 +144,23 @@ func New(name, tag, env string) MakeFeature {
 	f.makeName = name
 	f.makeTag = tag
 	f.makeEnv = env
-	log.DebugF("new gonnectian feature: %v %v", f.makeTag, f.makeEnv)
 	f.Init(f)
+	f.FeatureTag = Tag
 	return f
+}
+
+func (f *CFeature) Init(this interface{}) {
+	f.CFeature.Init(this)
+	f.dbTag = ""
+	f.dbTable = ""
+	f.profile = new(gonnect.Profile)
+	f.descriptor = NewDescriptor()
+	f.descriptor.APIMigrations.SignedInstall = true
+	f.descriptor.Version = globals.Version
+	f.generalPages = make(GeneralPages, 0)
+	f.dashboardItems = make(DashboardItems, 0)
+	f.handlers = make(map[string]http.Handler)
+	f.processors = make(map[string]feature.ReqProcessFn)
 }
 
 func (f *CFeature) SetGormDB(tag string) MakeFeature {
@@ -371,18 +392,8 @@ func (f *CFeature) AddContentSecurityPolicyDirective(p csp.Directive) MakeFeatur
 	return f
 }
 
-func (f *CFeature) Init(this interface{}) {
-	f.CMiddleware.Init(this)
-	f.dbTag = "gonnectian"
-	f.dbTable = ""
-	f.profile = new(gonnect.Profile)
-	f.descriptor = NewDescriptor()
-	f.descriptor.APIMigrations.SignedInstall = true
-	f.descriptor.Version = globals.Version
-	f.generalPages = make(GeneralPages, 0)
-	f.dashboardItems = make(DashboardItems, 0)
-	f.handlers = make(map[string]http.Handler)
-	f.processors = make(map[string]feature.ReqProcessFn)
+func (f *CFeature) Make() Feature {
+	return f
 }
 
 func (f *CFeature) Tag() (tag feature.Tag) {
@@ -472,6 +483,10 @@ func (f *CFeature) tx() (tx *gorm.DB) {
 }
 
 func (f *CFeature) Startup(ctx *cli.Context) (err error) {
+	if err = f.CFeature.Startup(ctx); err != nil {
+		return
+	}
+
 	_ = f.mustDB() // panic if expected database not present
 	if ctx.IsSet(f.makeTag + "-ac-base-route") {
 		if v := ctx.String(f.makeTag + "-ac-base-route"); v != "" {
@@ -632,6 +647,13 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 	return
 }
 
+func (f *CFeature) UserActions() (actions userbase.Actions) {
+	actions = actions.Append(
+		userbase.NewAction(f.Tag().String(), "view", "page"),
+	)
+	return
+}
+
 func (f *CFeature) GetPluginInstallationURL() (url string) {
 	url = bePath.TrimTrailingSlash(f.descriptor.BaseURL)
 	if f.baseRoute != "" {
@@ -647,63 +669,68 @@ func (f *CFeature) GetPluginDescriptor() (descriptor *Descriptor) {
 }
 
 func (f *CFeature) Apply(s feature.System) (err error) {
-	log.DebugF("applying %v atlassian routes", f.makeName)
+	log.DebugF("applying %v atlassian routes: %v", f.makeName, f.baseRoute)
+
 	routes.RegisterRoutes(
 		f.baseRoute, f.addon, s.Router(),
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var ee error
-			var hostBaseUrl string
-			var tenant *store.Tenant
-			var tenantContext map[string]interface{}
-			if hostBaseUrl, tenant, tenantContext, ee = f.parseConnectRequest(r); ee != nil {
-				log.ErrorF("error parsing connect request: %v", ee)
-				serve.Serve404(w, r)
-				return
-			}
-
-			// make a tenant context parsing wrapper func
-			// update the license and store
-			// pass tenant context to dashboard items, templates
-			// if not allow-unlicensed, render gadget error content instead of ui
-
-			// log.InfoF("tenant hit enabled handler: %v - %#+v - %#+v", hostBaseUrl, tenant, tenantContext)
-			if q := r.URL.Query(); q != nil && q.Has("lic") {
-				license := q.Get("lic")
-				log.InfoF("tenant license is \"%v\"", license)
-				tenantContext["license"] = license
-
-				if license == "none" {
-					if v, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !v) || !ok {
-						tenantContext["reject"] = "unlicensed"
-						log.ErrorF("tenant is not allowed-unlicensed, must reject")
-					} else {
-						delete(tenantContext, "reject")
-					}
-				}
-
-				var data []byte
-				if data, ee = json.Marshal(tenantContext); ee != nil {
-					log.ErrorF("error marshalling json tenantContext: %v - %v", hostBaseUrl, ee)
-				}
-				tenant.Context = data
-				if tenant, ee = f.addon.Store.Set(tenant); ee != nil {
-					log.ErrorF("error storing tenant on enabled: %v - %v", hostBaseUrl, ee)
-				}
-				serve.Serve204(w, r)
-				return
-			}
-
-			log.ErrorF("%v missing lic query parameter", f.makeName)
-			serve.Serve404(w, r)
-			return
-
-		}),
+		http.HandlerFunc(f.routeHandlerFn),
 		f.connectDisabledHandler,
 	)
+
 	for route, handler := range f.handlers {
 		log.DebugF("including %v atlassian custom route handler: %v", f.makeName, route)
 		s.Router().Handle(route, middleware.NewAuthenticationMiddleware(f.addon, false)(handler))
 	}
+
+	return
+}
+
+func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
+	log.WarnF("route handler hit: %v", r.URL.Path)
+	var ee error
+	var hostBaseUrl string
+	var tenant *store.Tenant
+	var tenantContext map[string]interface{}
+	if hostBaseUrl, tenant, tenantContext, ee = f.parseConnectRequest(r); ee != nil {
+		log.ErrorF("error parsing connect request: %v", ee)
+		serve.Serve404(w, r)
+		return
+	}
+
+	// make a tenant context parsing wrapper func
+	// update the license and store
+	// pass tenant context to dashboard items, templates
+	// if not allow-unlicensed, render gadget error content instead of ui
+
+	// log.InfoF("tenant hit enabled handler: %v - %#+v - %#+v", hostBaseUrl, tenant, tenantContext)
+	if q := r.URL.Query(); q != nil && q.Has("lic") {
+		license := q.Get("lic")
+		log.InfoF("tenant license is \"%v\"", license)
+		tenantContext["license"] = license
+
+		if license == "none" {
+			if v, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !v) || !ok {
+				tenantContext["reject"] = "unlicensed"
+				log.ErrorF("tenant is not allowed-unlicensed, must reject")
+			} else {
+				delete(tenantContext, "reject")
+			}
+		}
+
+		var data []byte
+		if data, ee = json.Marshal(tenantContext); ee != nil {
+			log.ErrorF("error marshalling json tenantContext: %v - %v", hostBaseUrl, ee)
+		}
+		tenant.Context = data
+		if tenant, ee = f.addon.Store.Set(tenant); ee != nil {
+			log.ErrorF("error storing tenant on enabled: %v - %v", hostBaseUrl, ee)
+		}
+		serve.Serve204(w, r)
+		return
+	}
+
+	log.ErrorF("%v missing lic query parameter", f.makeName)
+	serve.Serve404(w, r)
 	return
 }
 
@@ -842,8 +869,10 @@ func (f *CFeature) Process(s feature.Service, next http.Handler, w http.Response
 				}
 
 				if processor(s, w, r.Clone(ctx)) {
+					log.DebugF("route handled: %v", path)
 					return
 				}
+				log.DebugF("route not handled: %v", path)
 			}
 		}
 	}
@@ -864,14 +893,36 @@ func (f *CFeature) ipRejected(s feature.Service, w http.ResponseWriter, r *http.
 func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) feature.ReqProcessFn {
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
 		var err error
+		var data []byte
 		var p *page.Page
 		theme, _ := f.enjin.GetTheme()
-		if p, err = page.NewFromFile(path, filePath, theme, f.enjin.Context()); err == nil {
-			if err = s.ServePage(p, w, r); err != nil {
-				log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
+
+		if data, err = os.ReadFile(filePath); err == nil {
+
+			var created, updated int64
+			if info, e := times.Stat(filePath); e == nil {
+				updated = info.ModTime().Unix()
+				if info.HasBirthTime() {
+					created = info.BirthTime().Unix()
+				} else {
+					created = updated
+				}
+			} else {
+				log.ErrorF("%v feature: error getting timestamps from file: %v - %v", filePath, e)
+				created = time.Now().Unix()
+				updated = created
 			}
+
+			if p, err = page.New(f.Tag().String(), filePath, string(data), created, updated, theme, f.enjin.Context()); err == nil {
+				if err = s.ServePage(p, w, r); err != nil {
+					log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
+				}
+			} else {
+				log.ErrorF("error making %v atlassian page from path: %v", f.makeName, err)
+			}
+
 		} else {
-			log.ErrorF("error making %v atlassian page from path: %v", f.makeName, err)
+			log.ErrorF("error reading file: %v - %v", filePath, err)
 		}
 		return err == nil
 	}
@@ -881,15 +932,19 @@ func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.
 	var p *page.Page
 	var err error
 	var created, updated int64
-	if info, err := globals.BuildFileInfo(); err == nil {
+	if info, e := globals.BuildFileInfo(); e == nil {
+		updated = info.ModTime().Unix()
 		if info.HasBirthTime() {
 			created = info.BirthTime().Unix()
+		} else {
+			created = updated
 		}
-		updated = info.ModTime().Unix()
+	} else {
+		created = time.Now().Unix()
+		updated = created
 	}
-	shasum, _ := sha.DataHash10([]byte(raw))
 	theme, _ := f.enjin.GetTheme()
-	if p, err = page.New(path, raw, shasum, created, updated, theme, f.enjin.Context()); err != nil {
+	if p, err = page.New(f.Tag().String(), path, raw, created, updated, theme, f.enjin.Context()); err != nil {
 		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
 	}
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
