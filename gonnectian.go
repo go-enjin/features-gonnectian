@@ -15,7 +15,7 @@
 package gonnectian
 
 import (
-	goContext "context"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,12 +23,18 @@ import (
 	"strings"
 	"time"
 
-	times "github.com/go-enjin/github-com-djherbis-times"
 	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 	"gorm.io/gorm"
 
-	"github.com/go-enjin/be/pkg/context"
+	times "github.com/go-enjin/github-com-djherbis-times"
+
+	gonnect "github.com/go-enjin/github-com-craftamap-atlas-gonnect"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/middleware"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/routes"
+	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
+
+	beContext "github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/feature"
 	beForms "github.com/go-enjin/be/pkg/forms"
 	"github.com/go-enjin/be/pkg/globals"
@@ -37,15 +43,10 @@ import (
 	"github.com/go-enjin/be/pkg/net/headers/policy/csp"
 	"github.com/go-enjin/be/pkg/net/ip/ranges/atlassian"
 	"github.com/go-enjin/be/pkg/net/serve"
-	"github.com/go-enjin/be/pkg/page"
 	bePath "github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/go-enjin/be/pkg/slices"
 	"github.com/go-enjin/be/pkg/userbase"
-
-	gonnect "github.com/go-enjin/github-com-craftamap-atlas-gonnect"
-	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/middleware"
-	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/routes"
-	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
+	"github.com/go-enjin/be/types/page"
 )
 
 // TODO: implement a v2 of gonnectian as a feature filesystem
@@ -64,6 +65,10 @@ type Feature interface {
 	feature.ApplyMiddleware
 	feature.PageContextModifier
 	userbase.UserActionsProvider
+
+	GetPluginInstallationURL() (url string)
+	GetPluginDescriptor() (descriptor *Descriptor)
+	FindTenantByUrl(url string) (tenant *store.Tenant)
 }
 
 type MakeFeature interface {
@@ -145,6 +150,7 @@ func New(name, tag, env string) MakeFeature {
 	f.makeTag = tag
 	f.makeEnv = env
 	f.Init(f)
+	f.PackageTag = Tag
 	f.FeatureTag = Tag
 	return f
 }
@@ -220,7 +226,7 @@ func (f *CFeature) ConnectVendor(name, url string) MakeFeature {
 func (f *CFeature) ConnectScopes(scopes ...string) MakeFeature {
 	for _, scope := range scopes {
 		scope = strings.ToUpper(scope)
-		if !beStrings.StringInStrings(scope, f.descriptor.Scopes...) {
+		if !slices.Present(scope, f.descriptor.Scopes...) {
 			f.descriptor.Scopes = append(
 				f.descriptor.Scopes,
 				scope,
@@ -579,7 +585,7 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 		var scopes []string
 		for _, v := range ctx.StringSlice(f.makeTag + "-ac-scope") {
 			scope := strings.ToUpper(v)
-			if !beStrings.StringInStrings(scope, scopes...) {
+			if !slices.Present(scope, scopes...) {
 				scopes = append(scopes, scope)
 			}
 		}
@@ -647,9 +653,9 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 	return
 }
 
-func (f *CFeature) UserActions() (actions userbase.Actions) {
+func (f *CFeature) UserActions() (actions feature.Actions) {
 	actions = actions.Append(
-		userbase.NewAction(f.Tag().String(), "view", "page"),
+		feature.NewAction(f.Tag().String(), "view", "page"),
 	)
 	return
 }
@@ -779,7 +785,7 @@ func (f *CFeature) Use(s feature.System) feature.MiddlewareFn {
 	mw := middleware.NewRequestMiddleware(f.addon, make(map[string]string))
 	return func(next http.Handler) http.Handler {
 		this := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if beStrings.StringInStrings(r.URL.Path, routes.RegisteredRoutes...) {
+			if slices.Present(r.URL.Path, routes.RegisteredRoutes...) {
 				if f.ipRejected(s, w, r) {
 					address, _ := net.GetIpFromRequest(r)
 					log.ErrorF("address denied by gonnectian IP restrictions: %v - %v", address, r.URL.String())
@@ -794,7 +800,7 @@ func (f *CFeature) Use(s feature.System) feature.MiddlewareFn {
 	}
 }
 
-func (f *CFeature) FilterPageContext(ctx, _ context.Context, r *http.Request) (out context.Context) {
+func (f *CFeature) FilterPageContext(ctx, _ beContext.Context, r *http.Request) (out beContext.Context) {
 	if f.baseRoute != "" {
 		ctx.SetSpecific("BaseRoute"+f.makeEnv, f.baseRoute)
 	}
@@ -860,10 +866,10 @@ func (f *CFeature) Process(s feature.Service, next http.Handler, w http.Response
 				// log.DebugF("modified content security policy [after] : %#+v", policy.Value())
 				r = s.ContentSecurityPolicy().SetRequestPolicy(r, policy)
 
-				ctx := goContext.WithValue(r.Context(), "debug", tenantContext["debug"])
+				ctx := context.WithValue(r.Context(), "debug", tenantContext["debug"])
 				if license, ok := tenantContext["license"].(string); ok && license == "none" {
 					if allowedUnlicensed, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !allowedUnlicensed) || !ok {
-						ctx = goContext.WithValue(ctx, "reject", "unlicensed")
+						ctx = context.WithValue(ctx, "reject", "unlicensed")
 						log.ErrorF("rejecting unlicensed tenant: %v - %#+v", hostBaseUrl, tenantContext)
 					}
 				}
@@ -894,7 +900,7 @@ func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) featu
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
 		var err error
 		var data []byte
-		var p *page.Page
+		var p feature.Page
 		theme, _ := f.enjin.GetTheme()
 
 		if data, err = os.ReadFile(filePath); err == nil {
@@ -929,7 +935,7 @@ func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) featu
 }
 
 func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.ReqProcessFn {
-	var p *page.Page
+	var p feature.Page
 	var err error
 	var created, updated int64
 	if info, e := globals.BuildFileInfo(); e == nil {
