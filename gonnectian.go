@@ -145,7 +145,7 @@ type CFeature struct {
 
 func New(name, tag, env string) MakeFeature {
 	if name == "" || tag == "" || env == "" {
-		log.FatalF("gonnectian feature requires non-empty name, tag and env arguments")
+		log.FatalDF(1, "gonnectian feature requires non-empty name, tag and env arguments")
 		return nil
 	}
 	f := new(CFeature)
@@ -204,7 +204,7 @@ func (f *CFeature) ProfileSignedInstall(signedInstall bool) MakeFeature {
 
 func (f *CFeature) ConnectFromJSON(encoded []byte) MakeFeature {
 	if v, err := NewDescriptorFromJSON(encoded); err != nil {
-		log.FatalF("error decoding %v gonnectian json descriptor: %v", f.makeName, err)
+		log.FatalDF(1, "error decoding %v gonnectian json descriptor: %v", f.makeName, err)
 	} else {
 		f.descriptor = v
 	}
@@ -370,7 +370,7 @@ func (f *CFeature) AddDashboardItemProcessorWithConfig(key, path, name, thumbnai
 
 func (f *CFeature) AddConnectModule(name string, module interface{}) MakeFeature {
 	if _, ok := f.descriptor.Modules[name]; ok {
-		log.FatalF("gonnectian module exists already: %v", name)
+		log.FatalDF(1, "gonnectian module exists already: %v", name)
 		return nil
 	}
 	f.descriptor.Modules[name] = module
@@ -379,7 +379,7 @@ func (f *CFeature) AddConnectModule(name string, module interface{}) MakeFeature
 
 func (f *CFeature) AddRouteHandler(route string, handler http.Handler) MakeFeature {
 	if _, ok := f.handlers[route]; ok {
-		log.FatalF("gonnectian route handler exists already: %v", route)
+		log.FatalDF(1, "gonnectian route handler exists already: %v", route)
 		return nil
 	}
 	f.handlers[route] = handler
@@ -388,7 +388,7 @@ func (f *CFeature) AddRouteHandler(route string, handler http.Handler) MakeFeatu
 
 func (f *CFeature) AddRouteProcessor(route string, processor feature.ReqProcessFn) MakeFeature {
 	if _, ok := f.processors[route]; ok {
-		log.FatalF("gonnectian route processor exists already: %v", route)
+		log.FatalDF(1, "gonnectian route processor exists already: %v", route)
 		return nil
 	}
 	log.DebugF("adding gonnectian route processor for: %v", route)
