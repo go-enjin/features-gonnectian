@@ -703,6 +703,37 @@ func (f *CFeature) Apply(s feature.System) (err error) {
 	return
 }
 
+func (f *CFeature) updateTenantRecord(r *http.Request, hostBaseUrl string, tenant *store.Tenant, tenantContext map[string]interface{}) (err error) {
+	var license string
+	if license = r.URL.Query().Get("lic"); license == "" {
+		license = "none"
+	}
+	log.DebugF("tenant license is \"%v\"", license)
+	tenantContext["license"] = license
+
+	if license == "none" {
+		if v, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !v) || !ok {
+			tenantContext["reject"] = "unlicensed"
+			log.ErrorF("tenant is not allowed-unlicensed, must reject")
+		} else {
+			delete(tenantContext, "reject")
+		}
+	}
+
+	var data []byte
+	if data, err = json.Marshal(tenantContext); err != nil {
+		err = fmt.Errorf("error marshalling json tenantContext: %v - %w", hostBaseUrl, err)
+		return
+	}
+
+	tenant.Context = data
+	if tenant, err = f.addon.Store.Set(tenant); err != nil {
+		err = fmt.Errorf("error storing tenant on enabled: %v - %w", hostBaseUrl, err)
+		return
+	}
+	return
+}
+
 func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
 	log.WarnF("route handler hit: %v", r.URL.Path)
 	var ee error
