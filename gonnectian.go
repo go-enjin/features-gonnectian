@@ -753,26 +753,8 @@ func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
 
 	// log.InfoF("tenant hit enabled handler: %v - %#+v - %#+v", hostBaseUrl, tenant, tenantContext)
 	if q := r.URL.Query(); q != nil && q.Has("lic") {
-		license := q.Get("lic")
-		log.InfoF("tenant license is \"%v\"", license)
-		tenantContext["license"] = license
-
-		if license == "none" {
-			if v, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !v) || !ok {
-				tenantContext["reject"] = "unlicensed"
-				log.ErrorF("tenant is not allowed-unlicensed, must reject")
-			} else {
-				delete(tenantContext, "reject")
-			}
-		}
-
-		var data []byte
-		if data, ee = json.Marshal(tenantContext); ee != nil {
-			log.ErrorF("error marshalling json tenantContext: %v - %v", hostBaseUrl, ee)
-		}
-		tenant.Context = data
-		if tenant, ee = f.addon.Store.Set(tenant); ee != nil {
-			log.ErrorF("error storing tenant on enabled: %v - %v", hostBaseUrl, ee)
+		if err := f.updateTenantRecord(r, hostBaseUrl, tenant, tenantContext); err != nil {
+			log.ErrorRF(r, "error updating tenant record: %w", err)
 		}
 		serve.Serve204(w, r)
 		return
@@ -898,10 +880,14 @@ func (f *CFeature) FindTenantByUrl(url string) (tenant *store.Tenant) {
 func (f *CFeature) Process(s feature.Service, next http.Handler, w http.ResponseWriter, r *http.Request) {
 	for route, processor := range f.processors {
 		if path := bePath.SafeConcatUrlPath(f.baseRoute, beForms.TrimQueryParams(route)); path == r.URL.Path {
-			if hostBaseUrl, _, tenantContext, err := f.parseConnectRequest(r); err != nil {
+			if hostBaseUrl, tenant, tenantContext, err := f.parseConnectRequest(r); err != nil {
 				log.ErrorF("error parsing connect request: %v", err)
 			} else {
 				log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
+
+				if ee := f.updateTenantRecord(r, hostBaseUrl, tenant, tenantContext); ee != nil {
+					log.ErrorRF(r, "error updating tenant record: %v", ee)
+				}
 
 				policy := s.ContentSecurityPolicy().GetRequestPolicy(r)
 				// log.DebugF("modified content security policy [before] : %#+v", policy.Value())
