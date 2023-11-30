@@ -47,7 +47,6 @@ import (
 	"github.com/go-enjin/be/pkg/net/serve"
 	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/be/pkg/slices"
-	"github.com/go-enjin/be/pkg/userbase"
 	"github.com/go-enjin/be/types/page"
 )
 
@@ -70,7 +69,7 @@ type Feature interface {
 	feature.UseMiddleware
 	feature.ApplyMiddleware
 	feature.PageContextModifier
-	userbase.UserActionsProvider
+	feature.UserActionsProvider
 
 	GetPluginInstallationURL() (url string)
 	GetPluginDescriptor() (descriptor *Descriptor)
@@ -659,9 +658,14 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 	return
 }
 
+func (f *CFeature) Action(verb string, details ...string) (action feature.Action) {
+	action = feature.NewAction(f.Tag().Kebab(), verb, details...)
+	return
+}
+
 func (f *CFeature) UserActions() (actions feature.Actions) {
 	actions = actions.Append(
-		feature.NewAction(f.Tag().String(), "view", "page"),
+		f.Action("view", "page"),
 	)
 	return
 }
