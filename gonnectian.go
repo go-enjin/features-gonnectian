@@ -475,7 +475,7 @@ func (f *CFeature) mustDB() (db *gorm.DB) {
 	if v := f.Enjin.MustDB(f.dbTag); v != nil {
 		var ok bool
 		if db, ok = v.(*gorm.DB); !ok {
-			log.FatalDF(1, "expected *gorm.DB, found: %T", v)
+			log.PanicDF(1, "expected *gorm.DB, found: %T", v)
 		}
 	}
 	return
