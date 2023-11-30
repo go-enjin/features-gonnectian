@@ -642,11 +642,15 @@ func (f *CFeature) Startup(ctx *cli.Context) (err error) {
 		return
 	}
 
-	f.addon, err = gonnect.NewCustomAddon(f.profile, fmt.Sprintf("%v-feature", f.makeTag), dm, s)
+	if f.addon, err = gonnect.NewCustomAddon(f.profile, fmt.Sprintf("%v-feature", f.makeTag), dm, s); err != nil {
+		err = fmt.Errorf("error making gonnect.NewCustomAddon: %w", err)
+		return
+	}
 
 	if f.validateIp {
 		if f.ipRanges, err = atlassian.GetIpRanges(); err != nil {
-			log.FatalF("error getting %v atlassian ip ranges: %v", f.makeName, err)
+			err = fmt.Errorf("error getting %v atlassian ip ranges: %w", f.makeName, err)
+			return
 		}
 		log.DebugF("%v known %v atlassian ip ranges (--ac-validate-ip=true)", f.makeName, len(f.ipRanges))
 	}
