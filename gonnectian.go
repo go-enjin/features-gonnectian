@@ -735,11 +735,11 @@ func (f *CFeature) updateTenantRecord(r *http.Request, hostBaseUrl string, tenan
 }
 
 func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
-	log.WarnF("route handler hit: %v", r.URL.Path)
 	var err error
 	var hostBaseUrl string
 	var tenant *store.Tenant
 	var tenantContext map[string]interface{}
+	log.TraceRF(r, "route handler hit: %v", r.URL.Path)
 	if hostBaseUrl, tenant, tenantContext, err = f.parseConnectRequest(r); err != nil {
 		log.ErrorF("error parsing connect request: %v", err)
 		serve.Serve404(w, r)
@@ -751,7 +751,6 @@ func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
 	// pass tenant context to dashboard items, templates
 	// if not allow-unlicensed, render gadget error content instead of ui
 
-	// log.InfoF("tenant hit enabled handler: %v - %#+v - %#+v", hostBaseUrl, tenant, tenantContext)
 	if q := r.URL.Query(); q != nil && q.Has("lic") {
 		if err := f.updateTenantRecord(r, hostBaseUrl, tenant, tenantContext); err != nil {
 			log.ErrorRF(r, "error updating tenant record: %w", err)
@@ -760,7 +759,7 @@ func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.ErrorF("%v missing lic query parameter", f.makeName)
+	log.ErrorRF(r, "%v missing lic query parameter", f.makeName)
 	serve.Serve404(w, r)
 	return
 }
@@ -813,7 +812,7 @@ func (f *CFeature) Use(s feature.System) feature.MiddlewareFn {
 			if slices.Present(r.URL.Path, routes.RegisteredRoutes...) {
 				if f.ipRejected(s, w, r) {
 					address, _ := net.GetIpFromRequest(r)
-					log.ErrorF("address denied by gonnectian IP restrictions: %v - %v", address, r.URL.String())
+					log.ErrorRF(r, "address denied by gonnectian IP restrictions: %v - %v", address, r.URL.String())
 					return
 				}
 			}
@@ -881,35 +880,32 @@ func (f *CFeature) Process(s feature.Service, next http.Handler, w http.Response
 	for route, processor := range f.processors {
 		if path := bePath.SafeConcatUrlPath(f.baseRoute, beForms.TrimQueryParams(route)); path == r.URL.Path {
 			if hostBaseUrl, tenant, tenantContext, err := f.parseConnectRequest(r); err != nil {
-				log.ErrorF("error parsing connect request: %v", err)
+				log.ErrorRF(r, "error parsing connect request: %v", err)
 			} else {
-				log.DebugF("running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
+				log.DebugRF(r, "running %v atlassian %v route processor for app host: %v", f.makeName, path, hostBaseUrl)
 
 				if ee := f.updateTenantRecord(r, hostBaseUrl, tenant, tenantContext); ee != nil {
 					log.ErrorRF(r, "error updating tenant record: %v", ee)
 				}
 
 				policy := s.ContentSecurityPolicy().GetRequestPolicy(r)
-				// log.DebugF("modified content security policy [before] : %#+v", policy.Value())
 				policy = f.modifyContentSecurityPolicy(policy, r)
-				// log.DebugF("modified content security policy [after] : %#+v", policy.Value())
 				r = s.ContentSecurityPolicy().SetRequestPolicy(r, policy)
 
 				ctx := context.WithValue(r.Context(), "debug", tenantContext["debug"])
 				if license, ok := tenantContext["license"].(string); ok && license == "none" {
 					if allowedUnlicensed, ok := tenantContext["allowed-unlicensed"].(bool); (ok && !allowedUnlicensed) || !ok {
 						ctx = context.WithValue(ctx, "reject", "unlicensed")
-						log.ErrorF("rejecting unlicensed tenant: %v - %#+v", hostBaseUrl, tenantContext)
+						log.ErrorRF(r, "rejecting unlicensed tenant: %v - %#+v", hostBaseUrl, tenantContext)
 					}
 				}
 
 				r = r.Clone(ctx)
 				if processor(s, w, r) {
-					log.DebugF("route handled: %v", path)
+					log.TraceRF(r, "route handled: %v", path)
 					f.Enjin.Emit(SignalRouteHandled, f.Tag().Kebab(), r, hostBaseUrl, tenantContext)
 					return
 				}
-				log.DebugF("route not handled: %v", path)
 			}
 		}
 	}
