@@ -34,6 +34,8 @@ import (
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/routes"
 	"github.com/go-enjin/github-com-craftamap-atlas-gonnect/store"
 
+	"github.com/go-enjin/be/pkg/feature/signaling"
+
 	beContext "github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/feature"
 	beForms "github.com/go-enjin/be/pkg/forms"
@@ -50,6 +52,10 @@ import (
 )
 
 // TODO: implement a v2 of gonnectian as a feature filesystem
+
+const (
+	SignalRouteHandled signaling.Signal = "gonnectian-route-handled"
+)
 
 const Tag feature.Tag = "gonnectian"
 
@@ -874,8 +880,10 @@ func (f *CFeature) Process(s feature.Service, next http.Handler, w http.Response
 					}
 				}
 
-				if processor(s, w, r.Clone(ctx)) {
+				r = r.Clone(ctx)
+				if processor(s, w, r) {
 					log.DebugF("route handled: %v", path)
+					f.Enjin.Emit(SignalRouteHandled, f.Tag().Kebab(), r, hostBaseUrl, tenantContext)
 					return
 				}
 				log.DebugF("route not handled: %v", path)
