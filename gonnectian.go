@@ -736,12 +736,12 @@ func (f *CFeature) updateTenantRecord(r *http.Request, hostBaseUrl string, tenan
 
 func (f *CFeature) routeHandlerFn(w http.ResponseWriter, r *http.Request) {
 	log.WarnF("route handler hit: %v", r.URL.Path)
-	var ee error
+	var err error
 	var hostBaseUrl string
 	var tenant *store.Tenant
 	var tenantContext map[string]interface{}
-	if hostBaseUrl, tenant, tenantContext, ee = f.parseConnectRequest(r); ee != nil {
-		log.ErrorF("error parsing connect request: %v", ee)
+	if hostBaseUrl, tenant, tenantContext, err = f.parseConnectRequest(r); err != nil {
+		log.ErrorF("error parsing connect request: %v", err)
 		serve.Serve404(w, r)
 		return
 	}
