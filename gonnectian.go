@@ -135,8 +135,6 @@ type CFeature struct {
 	connectEnabledHandler  http.Handler
 	connectDisabledHandler http.Handler
 
-	enjin feature.Internals
-
 	addon *gonnect.Addon
 
 	dbTag   string
@@ -470,11 +468,11 @@ func (f *CFeature) Build(b feature.Buildable) (err error) {
 }
 
 func (f *CFeature) Setup(enjin feature.Internals) {
-	f.enjin = enjin
+	f.CFeature.Setup(enjin)
 }
 
 func (f *CFeature) mustDB() (db *gorm.DB) {
-	if v := f.enjin.MustDB(f.dbTag); v != nil {
+	if v := f.Enjin.MustDB(f.dbTag); v != nil {
 		var ok bool
 		if db, ok = v.(*gorm.DB); !ok {
 			log.FatalDF(1, "expected *gorm.DB, found: %T", v)
@@ -913,7 +911,7 @@ func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) featu
 		var err error
 		var data []byte
 		var p feature.Page
-		theme, _ := f.enjin.GetTheme()
+		theme, _ := f.Enjin.GetTheme()
 
 		if data, err = os.ReadFile(filePath); err == nil {
 
@@ -931,7 +929,7 @@ func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) featu
 				updated = created
 			}
 
-			if p, err = page.New(f.Tag().String(), filePath, string(data), created, updated, theme, f.enjin.Context()); err == nil {
+			if p, err = page.New(f.Tag().String(), filePath, string(data), created, updated, theme, f.Enjin.Context(r)); err == nil {
 				if err = s.ServePage(p, w, r); err != nil {
 					log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
 				}
@@ -961,7 +959,7 @@ func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.
 		created = time.Now().Unix()
 		updated = created
 	}
-	theme, _ := f.enjin.GetTheme()
+	theme, _ := f.Enjin.GetTheme()
 	if p, err = page.New(f.Tag().String(), path, raw, created, updated, theme, f.enjin.Context()); err != nil {
 		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
 	}
