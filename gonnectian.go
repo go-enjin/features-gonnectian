@@ -962,8 +962,6 @@ func (f *CFeature) makeProcessorFromPageFile(path string, filePath string) featu
 }
 
 func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.ReqProcessFn {
-	var p feature.Page
-	var err error
 	var created, updated int64
 	if info, e := globals.BuildFileInfo(); e == nil {
 		updated = info.ModTime().Unix()
@@ -977,12 +975,13 @@ func (f *CFeature) makeProcessorFromPageString(path string, raw string) feature.
 		updated = created
 	}
 	theme, _ := f.Enjin.GetTheme()
-	if p, err = page.New(f.Tag().String(), path, raw, created, updated, theme, f.enjin.Context()); err != nil {
-		log.FatalF("error making %v atlassian page from path: %v", f.makeName, err)
-	}
 	return func(s feature.Service, w http.ResponseWriter, r *http.Request) (ok bool) {
-		if err = s.ServePage(p, w, r); err != nil {
-			log.ErrorF("error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
+		var err error
+		var p feature.Page
+		if p, err = page.New(f.Tag().String(), path, raw, created, updated, theme, f.Enjin.Context(r)); err != nil {
+			log.PanicRDF(r, 1, "error making %v atlassian page from path: %v", f.makeName, err)
+		} else if err = s.ServePage(p, w, r); err != nil {
+			log.ErrorRDF(r, 1, "error serving %v atlassian page %v: %v", f.makeName, r.URL.Path, err)
 		}
 		return err == nil
 	}
