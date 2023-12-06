@@ -5,8 +5,8 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	github.com/go-enjin/be v0.5.4
-	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.5.4
+	github.com/go-enjin/be v0.5.5
+	github.com/go-enjin/github-com-craftamap-atlas-gonnect v0.5.5
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a
 	github.com/iancoleman/strcase v0.3.0
 	github.com/urfave/cli/v2 v2.26.0
